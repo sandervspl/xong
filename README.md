@@ -1,14 +1,12 @@
 # XONG
 
-## What's inside?
-
-This turborepo uses [pnpm](https://pnpm.io) as a packages manager. It includes the following packages/apps:
+This monorepo uses [turborepo](https://turborepo.org/) and [pnpm](https://pnpm.io) as a packages manager.
 
 ### Build
 
 To build all apps and packages, run the following command:
 
-```bash
+```sh
 pnpm run build
 ```
 
@@ -16,6 +14,6 @@ pnpm run build
 
 To develop all apps and packages, run the following command:
 
-```bash
+```sh
 pnpm run dev
 ```
