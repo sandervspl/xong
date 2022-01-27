@@ -1,5 +1,53 @@
 {
-  "extends": "tsconfig/nextjs.json",
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "compilerOptions": {
+    "sourceMap": true,
+    "pretty": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "allowJs": false,
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    "target": "esnext",
+    "module": "esnext",
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "config": ["config/index"],
+      "modules": ["src/components/modules/index"],
+      "modules/*": ["src/components/modules/*"],
+      "common": ["src/components/common/index"],
+      "common/*": ["src/components/common/*"],
+      "hooks": ["src/hooks/index"],
+      "hooks/*": ["src/hooks/*"],
+      "images/*": ["src/static/images/*"],
+      "server/*": ["server/*"],
+      "styles": ["src/styles/index"],
+      "styles/*": ["src/styles/*"],
+      "services": ["src/services"],
+      "services/*": ["src/services/*"],
+      "queries/*": ["src/queries/*"],
+      "types": ["src/types/index"],
+      "vectors/*": ["src/static/vectors/*"],
+    },
+    "lib": ["dom", "esnext"],
+    "incremental": true
+  },
+  "typeRoots": ["node_modules/@types"],
+  "exclude": [
+    "dist",
+    ".next",
+    "out",
+    "next.config.js",
+    "node_modules"
+  ],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ]
 }
