@@ -1,7 +1,14 @@
 export default function Home() {
   return (
-    <h1 className="text-3xl font-bold underline">
-      Hello World
-    </h1>
+    <main className="bg-secondary h-full grid grid-rows-3 place-items-center">
+      <div>
+        <h1 className="text-primary-900 text-9xl font-light">XONG</h1>
+      </div>
+      <div>
+        <button className="fancy">
+          <span className="text-secondary text-3xl">play</span>
+        </button>
+      </div>
+    </main>
   );
 }
