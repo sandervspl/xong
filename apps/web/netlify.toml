@@ -1,0 +1,6 @@
+[build.environment]
+    NPM_FLAGS="--version" # This makes netlify skip their automatic npm install, to let pnpm take care of it.
+
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

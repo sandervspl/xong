@@ -32,6 +32,10 @@ yarn-error.log*
 # turbo
 .turbo
 
+# netlify
+package-lock.json
+yarn.lock
+
 # xong
 dist/
 .env.local
