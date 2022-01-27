@@ -1,13 +1,7 @@
-import type * as i from '@xong/types';
-
-
-export default function Web() {
-  const foo: i.Foo = 'bar';
-
+export default function Home() {
   return (
-    <div>
-      <h1>Web</h1><br />
-      {foo}
-    </div>
+    <h1 className="text-3xl font-bold underline">
+      Hello World
+    </h1>
   );
 }

@@ -6,7 +6,7 @@
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:import/typescript",
-    "plugin:@next/next/recommended"
+    "next/core-web-vitals"
   ],
   "parserOptions": {
     "ecmaVersion": 2018,
