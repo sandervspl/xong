@@ -4,7 +4,6 @@
     "module": "esnext",
     "target": "esnext",
     "lib": ["esnext", "DOM"],
-    "types": ["vite/client"],
     "moduleResolution": "node",
     "removeComments": true,
     "esModuleInterop": true,
@@ -14,6 +13,7 @@
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
     "strictPropertyInitialization": false,
+    "isolatedModules": true,
     "baseUrl": "src",
     "paths": {}
   },
