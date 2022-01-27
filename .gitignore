@@ -39,3 +39,4 @@ yarn.lock
 # xong
 dist/
 .env.local
+.vscode/
