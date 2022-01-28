@@ -44,6 +44,7 @@
     "eslint-plugin-react-hooks": "4.3.0",
     "graphql-tag": "2.12.6",
     "postcss": "8.4.5",
+    "postcss-import": "14.0.2",
     "react-query": "3.34.12",
     "sass": "1.49.0",
     "stream-to-promise": "3.0.0",

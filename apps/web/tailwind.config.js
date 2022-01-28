@@ -4,13 +4,20 @@ module.exports = {
     './components/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
-    extend: {},
-    colors: {
-      'primary-900': '#dc7558',
-      'primary-300': '#db8c75',
-      'primary-100': '#f7bbad',
-      secondary: '#1e1035',
-      tertiary: '#632650',
+    extend: {
+      colors: {
+        primary: {
+          100: '#fcc1b5',
+          200: '#f7bbad',
+          300: '#fab2a2',
+          400: '#db8c75',
+          500: '#f5886f',
+          600: '#dc7558',
+          900: '#7a3320',
+        },
+        secondary: '#1e1035',
+        tertiary: '#632650',
+      },
     },
   },
   plugins: [],

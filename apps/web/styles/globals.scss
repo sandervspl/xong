@@ -1,13 +1,11 @@
-html,
-body {
+html, body {
   height: 100%;
   padding: 0;
   margin: 0;
-  font-size: 1rem;
-  line-height: 1.5;
 }
 
 #__next {
+  @apply bg-secondary;
   height: 100%;
 }
 
@@ -25,12 +23,6 @@ a {
   }
 }
 
-$primary: #fab2a2;
-$light-primary: #fcc1b5;
-$dark-primary: #f5886f;
-$primary-border: #7a3320;
-// $primary-shadow: #ffe3e2;
-
 button {
   position: relative;
   display: inline-block;
@@ -42,16 +34,16 @@ button {
   min-width: 190px;
 
   &.fancy {
+    @apply bg-primary-100 border-2 border-solid border-primary-900;
     font-weight: 400;
     text-transform: uppercase;
     padding: 0.25em 1em;
-    background: $light-primary;
-    border: 2px solid $primary-border;
     border-radius: 0.75em;
     transform-style: preserve-3d;
     transition: transform 125ms cubic-bezier(0, 0, 0.58, 1), background 125ms cubic-bezier(0, 0, 0.58, 1);
 
     &::before {
+      @apply bg-primary-500 shadow-[0_0_0_2px] shadow-primary-900;
       position: absolute;
       content: '';
       width: 100%;
@@ -60,18 +52,16 @@ button {
       left: 0;
       right: 0;
       bottom: 0;
-      background: $dark-primary;
       border-radius: inherit;
-      box-shadow: 0 0 0 2px $primary-border;
       transform: translate3d(0, 0.75em, -1em);
       transition: transform 125ms cubic-bezier(0, 0, 0.58, 1), box-shadow 125ms cubic-bezier(0, 0, 0.58, 1);
     }
     &:hover, &:focus-visible {
-      background: $primary;
+      @apply bg-primary-300;
       transform: translate(0, 0.25em);
 
       &::before {
-        box-shadow: 0 0 0 2px $primary-border;
+        @apply bg-primary-500 shadow-[0_0_0_2px] shadow-primary-900;
         transform: translate3d(0, 0.5em, -1em);
       }
     }
@@ -79,7 +69,7 @@ button {
       transform: translate(0em, 0.75em);
 
       &::before {
-        box-shadow: 0 0 0 2px $primary-border;
+        @apply bg-primary-500 shadow-[0_0_0_2px] shadow-primary-900;
         transform: translate3d(0, 0, -1em);
       }
     }
