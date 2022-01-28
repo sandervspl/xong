@@ -12,11 +12,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     io.on('connection', (socket) => {
       socket.broadcast.emit('User connected');
-
-      socket.on('test', (msg) => {
-        console.log('test', { msg });
-        socket.emit('test', 'yo!');
-      });
     });
 
     (res.socket! as any).server.io = io;

@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // });
 
       state.add(body.id);
-      console.log({ state });
+      console.info({ state });
 
       const io = (res.socket! as any).server.io as Server;
 
@@ -52,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         io.emit(`game-ready-${p1}`, 'Game ready!');
         io.emit(`game-ready-${p2}`, 'Game ready!');
 
-        console.log({ state });
+        console.info({ state });
       }
 
       res.status(200).json({});

@@ -33,7 +33,7 @@ export default function Page() {
 
       // Sub to personal game-ready event
       io.on(gameReadyEvt, (data) => {
-        console.log(data);
+        console.info('game ready event', data);
         setWaiting(false);
       });
     }
