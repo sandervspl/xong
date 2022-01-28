@@ -1,6 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
 
-import type { UserInput } from '../faunadb/generated';
+import type { GetUsersQuery, UserInput } from '../faunadb/generated';
 import { getSdk } from '../faunadb/generated';
 
 
@@ -15,7 +15,7 @@ const graphQLClient = new GraphQLClient(FAUNA_GRAPHQL_BASE_URL, {
 
 const sdk = getSdk(graphQLClient);
 
-export const listUsers = async () => {
+export async function listUsers(): Promise<GetUsersQuery['users']['data']> {
   const res = await sdk.GetUsers();
   return res.users.data;
 };

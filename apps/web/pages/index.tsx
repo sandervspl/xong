@@ -1,19 +1,14 @@
 import type { GetStaticProps } from 'next';
-import useSWR from 'swr';
 
 import type { GetUsersQuery } from 'faunadb/generated';
-
 import { listUsers } from 'lib/fauna';
-import fetcher from 'utils/fetcher';
 
 
 type Props = {
-  initialUsers: GetUsersQuery;
+  initialUsers: GetUsersQuery['users']['data'];
 };
 
 export default function Page(props: Props) {
-  const { data: users } = useSWR<GetUsersQuery>('/api/users', fetcher);
-
   return (
     <main className="bg-secondary h-full grid grid-rows-3 place-items-center">
       <div>
@@ -26,16 +21,18 @@ export default function Page(props: Props) {
       </div>
 
       <pre className="text-primary-900">
-        {JSON.stringify(users, null, 2)}
+        {JSON.stringify(props.initialUsers, null, 2)}
       </pre>
     </main>
   );
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps<Props> = async () => {
+  const users = await listUsers();
+
   return {
     props: {
-      initualUsers: await listUsers(),
+      initialUsers: users,
     },
     revalidate: 1,
   };
