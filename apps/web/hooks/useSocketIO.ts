@@ -1,26 +1,19 @@
 import React from 'react';
-import axios from 'axios';
 import type { Socket } from 'socket.io-client';
-import { io } from 'socket.io-client';
+import { connect } from 'socket.io-client';
 
 
 function useSocketIO() {
   const [ioClient, setIoClient] = React.useState<Socket | null>(null);
 
   React.useEffect(() => {
-    axios.get('/api/socketio').finally(() => {
-      const socket = io();
+    const socket = connect(process.env.NEXT_PUBLIC_WEBSOCKET_URL!);
 
-      socket.on('connect', () => {
-        console.info('Connected!');
-      });
-
-      socket.on('disconnect', () => {
-        console.info('Disconnect!');
-      });
-
-      setIoClient(socket);
+    socket.on('connect', () => {
+      console.info('connected!');
     });
+
+    setIoClient(socket);
   }, []);
 
   return ioClient;
