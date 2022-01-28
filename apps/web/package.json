@@ -41,6 +41,7 @@
     "eslint-plugin-jsx-a11y": "6.5.1",
     "eslint-plugin-react": "7.28.0",
     "eslint-plugin-react-hooks": "4.3.0",
+    "graphql-tag": "2.12.6",
     "postcss": "8.4.5",
     "sass": "1.49.0",
     "stream-to-promise": "3.0.0",

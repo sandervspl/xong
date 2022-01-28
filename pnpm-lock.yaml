@@ -61,6 +61,7 @@ importers:
       faunadb: 4.4.1
       graphql: 16.3.0
       graphql-request: 3.7.0
+      graphql-tag: 2.12.6
       next: 12.0.9
       postcss: 8.4.5
       react: 17.0.2
@@ -83,7 +84,7 @@ importers:
       '@graphql-codegen/cli': 2.4.0_graphql@16.3.0+typescript@4.5.5
       '@graphql-codegen/schema-ast': 2.4.1_graphql@16.3.0
       '@graphql-codegen/typescript': 2.4.2_graphql@16.3.0
-      '@graphql-codegen/typescript-graphql-request': 4.3.3_6fe788cd2b2709bd607367a71fbfa758
+      '@graphql-codegen/typescript-graphql-request': 4.3.3_6e6d22c21f77a29c53247c4ea42d3a5f
       '@graphql-codegen/typescript-operations': 2.2.2_graphql@16.3.0
       '@types/react': 17.0.38
       '@types/react-dom': 17.0.11
@@ -98,6 +99,7 @@ importers:
       eslint-plugin-jsx-a11y: 6.5.1_eslint@8.7.0
       eslint-plugin-react: 7.28.0_eslint@8.7.0
       eslint-plugin-react-hooks: 4.3.0_eslint@8.7.0
+      graphql-tag: 2.12.6_graphql@16.3.0
       postcss: 8.4.5
       sass: 1.49.0
       stream-to-promise: 3.0.0
@@ -1620,7 +1622,7 @@ packages:
       tslib: 2.3.1
     dev: true
 
-  /@graphql-codegen/typescript-graphql-request/4.3.3_6fe788cd2b2709bd607367a71fbfa758:
+  /@graphql-codegen/typescript-graphql-request/4.3.3_6e6d22c21f77a29c53247c4ea42d3a5f:
     resolution: {integrity: sha512-+ibHVir/q9vHmt1uwhhBcb9qHGXjT80YCa0pcbY2GnfZGMMkqLS5/uOpS8f/0UZE3JKUr6P2uqM44cidRzTZ2g==}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -1632,6 +1634,7 @@ packages:
       auto-bind: 4.0.0
       graphql: 16.3.0
       graphql-request: 3.7.0_graphql@16.3.0
+      graphql-tag: 2.12.6_graphql@16.3.0
       tslib: 2.3.1
     transitivePeerDependencies:
       - encoding
