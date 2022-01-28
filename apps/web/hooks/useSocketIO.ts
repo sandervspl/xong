@@ -7,6 +7,7 @@ function useSocketIO() {
   const [ioClient, setIoClient] = React.useState<Socket | null>(null);
 
   React.useEffect(() => {
+    // Get socket.io connection on client started
     const socket = connect(process.env.NEXT_PUBLIC_WEBSOCKET_URL!);
 
     socket.on('connect', () => {

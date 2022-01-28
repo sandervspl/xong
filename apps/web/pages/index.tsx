@@ -8,8 +8,6 @@ import { SocketIOContext } from 'lib/SocketIOContext';
 
 type UserCreateResponse = GetUserByUsernameQuery['findUserByUsername'];
 
-let gameReadyEvt = '';
-
 export default function Page() {
   const io = React.useContext(SocketIOContext);
   const gamesMutation = useMutation((playerIds: string[]) => {
@@ -25,15 +23,10 @@ export default function Page() {
 
   React.useEffect(() => {
     if (io && userId) {
-      // If we have previously queued we have to remove the game-ready event listener
-      if (gameReadyEvt) {
-        io.off(gameReadyEvt);
-      }
-      gameReadyEvt = `game-ready-${userId}`;
+      console.info('Waiting for game...');
 
-      // Sub to personal game-ready event
-      io.on(gameReadyEvt, (data) => {
-        console.info('game ready event', data);
+      io.on('game-ready', (data) => {
+        console.info('game ready!', data);
         setWaiting(false);
       });
     }
@@ -52,7 +45,7 @@ export default function Page() {
         }
 
         // - Add user to waiting room
-        axios.post('/api/waitingRooms', { id: user.data._id });
+        io?.emit('queue', user.data._id);
         setUserId(user.data._id);
         setWaiting(true);
       },
@@ -70,6 +63,7 @@ export default function Page() {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.currentTarget.value)}
+          disabled={waiting}
         />
 
         <div className="h-5" aria-hidden="true" />
@@ -79,7 +73,7 @@ export default function Page() {
         </button>
       </div>
 
-      <div className="text-primary-500">
+      <div className="text-primary-500 text-2xl">
         {waiting && <p>Waiting for an opponent...</p>}
         {gamesMutation.isLoading && <p>Creating game...</p>}
         {gamesMutation.isError && <p>An error occurred: {(gamesMutation.error as any).message}</p>}
