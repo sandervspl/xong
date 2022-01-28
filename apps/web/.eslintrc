@@ -67,12 +67,7 @@
         "index",
         "parent",
         "sibling"
-      ],
-      "pathGroups": [{
-        "pattern": "types",
-        "group": "builtin",
-        "position": "before"
-      }]
+      ]
     }],
 
     "react/jsx-tag-spacing": 2,

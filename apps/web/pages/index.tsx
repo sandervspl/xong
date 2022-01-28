@@ -1,10 +1,10 @@
 import type { GetStaticProps } from 'next';
+import { useRouter } from 'next/router';
 import { useMutation } from 'react-query';
 import axios from 'axios';
 
 import type { GetUsersQuery } from 'faunadb/generated';
 import { listUsers } from 'lib/fauna';
-import { useRouter } from 'next/router';
 
 
 type Props = {

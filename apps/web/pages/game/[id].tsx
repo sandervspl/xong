@@ -1,5 +1,6 @@
-import { getGameById } from 'lib/fauna';
 import type { GetServerSideProps } from 'next';
+
+import { getGameById } from 'lib/fauna';
 
 
 type Props = {
