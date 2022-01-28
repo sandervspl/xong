@@ -11,7 +11,8 @@
     "lint": "next lint",
     "gql:gen": "DOTENV_CONFIG_PATH=./.env.local graphql-codegen -r dotenv/config -c ../../fauna-sdk.yml",
     "gql:dev": "APP_ENV=development npm run gql:gen",
-    "prebuild": "test \"$CI\" = true && npx pnpm install -r --store=node_modules/.pnpm-store || echo skiping pnpm install"
+    "prebuild": "test \"$CI\" = true && npx pnpm install -r --store=node_modules/.pnpm-store || echo skiping pnpm install",
+    "postinstall": "pnpm run gql:gen"
   },
   "dependencies": {
     "faunadb": "4.4.1",

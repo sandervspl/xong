@@ -11,8 +11,7 @@
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "fauna:upload": "node scripts/faunaUpload.js",
-    "heroku-prebuild": "pnpm i -r && cd apps/server && pnpm run build"
+    "fauna:upload": "node scripts/faunaUpload.js"
   },
   "devDependencies": {
     "@types/express": "4.17.13",
