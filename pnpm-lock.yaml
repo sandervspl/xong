@@ -18,39 +18,6 @@ importers:
       server: 1.0.37
       turbo: 1.1.1
 
-  apps/game-server:
-    specifiers:
-      '@babel/preset-typescript': 7.16.7
-      '@types/aws-lambda': 8.10.92
-      '@types/node': 17.0.12
-      '@xong/types': workspace:*
-      cors: 2.8.5
-      esbuild: 0.14.14
-      eslint: 8.7.0
-      eslint-config-next: 12.0.9
-      eslint-plugin-flowtype: 8.0.3
-      eslint-plugin-import: 2.25.4
-      express: 4.17.2
-      netlify-lambda: 2.0.15
-      node-notifier: 10.0.0
-      socket.io: 4.4.1
-    dependencies:
-      cors: 2.8.5
-      express: 4.17.2
-      socket.io: 4.4.1
-    devDependencies:
-      '@babel/preset-typescript': 7.16.7
-      '@types/aws-lambda': 8.10.92
-      '@types/node': 17.0.12
-      '@xong/types': link:../../packages/types
-      esbuild: 0.14.14
-      eslint: 8.7.0
-      eslint-config-next: 12.0.9_eslint@8.7.0
-      eslint-plugin-flowtype: 8.0.3_eslint@8.7.0
-      eslint-plugin-import: 2.25.4_eslint@8.7.0
-      netlify-lambda: 2.0.15
-      node-notifier: 10.0.0
-
   apps/server:
     specifiers:
       '@babel/preset-typescript': 7.16.7
@@ -58,12 +25,14 @@ importers:
       '@types/node': 17.0.12
       '@xong/types': workspace:*
       cors: 2.8.5
+      esbuild: 0.14.14
       eslint: 8.7.0
       eslint-config-next: 12.0.9
       eslint-plugin-flowtype: 8.0.3
       eslint-plugin-import: 2.25.4
       express: 4.17.2
       netlify-lambda: 2.0.15
+      node-notifier: 10.0.0
       socket.io: 4.4.1
     dependencies:
       cors: 2.8.5
@@ -74,11 +43,13 @@ importers:
       '@types/aws-lambda': 8.10.92
       '@types/node': 17.0.12
       '@xong/types': link:../../packages/types
+      esbuild: 0.14.14
       eslint: 8.7.0
       eslint-config-next: 12.0.9_eslint@8.7.0
       eslint-plugin-flowtype: 8.0.3_eslint@8.7.0
       eslint-plugin-import: 2.25.4_eslint@8.7.0
       netlify-lambda: 2.0.15
+      node-notifier: 10.0.0
 
   apps/web:
     specifiers:
