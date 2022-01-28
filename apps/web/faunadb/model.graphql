@@ -1,0 +1,8 @@
+type User {
+  username: String
+}
+
+type Query {
+  users: [User]
+  findUserByUsername(username: String): User
+}

@@ -9,14 +9,25 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "gql:gen": "graphql-codegen -r dotenv/config -c ../../fauna-sdk.yml",
+    "gql:dev": "APP_ENV=development DOTENV_CONFIG_PATH=./.env.local npm run gql:gen",
     "prebuild": "test \"$CI\" = true && npx pnpm install -r --store=node_modules/.pnpm-store || echo skiping pnpm install"
   },
   "dependencies": {
+    "faunadb": "4.4.1",
+    "graphql": "16.3.0",
+    "graphql-request": "3.7.0",
     "next": "12.0.9",
     "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react-dom": "17.0.2",
+    "swr": "1.2.0"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "2.4.0",
+    "@graphql-codegen/schema-ast": "2.4.1",
+    "@graphql-codegen/typescript": "2.4.2",
+    "@graphql-codegen/typescript-graphql-request": "4.3.3",
+    "@graphql-codegen/typescript-operations": "2.2.2",
     "@types/react": "17.0.38",
     "@types/react-dom": "17.0.11",
     "@xong/types": "workspace:*",
@@ -32,7 +43,9 @@
     "eslint-plugin-react-hooks": "4.3.0",
     "postcss": "8.4.5",
     "sass": "1.49.0",
+    "stream-to-promise": "3.0.0",
     "tailwindcss": "3.0.17",
+    "tsafe": "0.9.0",
     "typescript": "*"
   }
 }

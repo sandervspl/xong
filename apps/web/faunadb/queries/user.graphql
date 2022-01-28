@@ -1,0 +1,19 @@
+query GetUserByUsername($username: String!) {
+  findUserByUsername(username: $username) {
+    username
+  }
+}
+
+query GetUsers {
+  users {
+    data {
+      username
+    }
+  }
+}
+
+mutation CreateUser($input: UserInput!) {
+  createUser(data: $input) {
+    username
+  }
+}

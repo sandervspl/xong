@@ -15,8 +15,10 @@
     "target": "esnext",
     "module": "esnext",
     "jsx": "preserve",
-    "baseUrl": "src",
-    "paths": {},
+    "baseUrl": ".",
+    "paths": {
+      "~lib/*": ["lib/*"],
+    },
     "lib": ["dom", "esnext"],
     "incremental": true
   },
