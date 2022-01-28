@@ -15,11 +15,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
 
     async POST() {
-      const { body: { username } } = req;
-      const created = await createUser({
-        username,
-      });
-      res.status(204).json(created);
+      const created = await createUser(req.body);
+      res.status(200).json(created);
     },
   };
 

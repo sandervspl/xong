@@ -12,3 +12,10 @@ query GetUsers {
     }
   }
 }
+
+mutation CreateUser($data: UserInput!) {
+  createUser(data: $data) {
+    _id
+    username
+  }
+}
