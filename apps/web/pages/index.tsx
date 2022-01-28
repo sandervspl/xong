@@ -18,6 +18,10 @@ export default function Page(props: Props) {
   });
 
   async function onPlayClick() {
+    if (mutation.isLoading || mutation.isSuccess) {
+      return;
+    }
+
     const userIds = props.initialUsers.map((user) => user?._id).filter(Boolean) as string[];
 
     if (userIds.length >= 2) {
@@ -45,10 +49,6 @@ export default function Page(props: Props) {
         {mutation.isError && <div>An error occurred: {(mutation.error as any).message}</div>}
         {mutation.isSuccess && <div>Game created!</div>}
       </div>
-
-      <pre className="text-primary-900">
-        {JSON.stringify(props.initialUsers, null, 2)}
-      </pre>
     </main>
   );
 }
