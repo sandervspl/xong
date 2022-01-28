@@ -12,7 +12,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "fauna:upload": "node scripts/faunaUpload.js",
-    "heroku-prebuild": "cd apps/server"
+    "heroku-prebuild": "cd apps/server && pnpm i -r && pnpm run build"
   },
   "devDependencies": {
     "@types/express": "4.17.13",
@@ -26,5 +26,6 @@
     "npm": ">=7.0.0",
     "node": ">=14.0.0"
   },
-  "packageManager": "pnpm@6.28.0"
+  "packageManager": "pnpm@6.28.0",
+  "heroku-run-build-script": false
 }
