@@ -5,12 +5,14 @@ importers:
   .:
     specifiers:
       '@types/express': 4.17.13
+      dotenv: 14.3.2
       pnpm: 6.28.0
       prettier: ^2.5.1
       server: 1.0.37
       turbo: latest
     devDependencies:
       '@types/express': 4.17.13
+      dotenv: 14.3.2
       pnpm: 6.28.0
       prettier: 2.5.1
       server: 1.0.37
@@ -4269,6 +4271,11 @@ packages:
   /dotenv/10.0.0:
     resolution: {integrity: sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==}
     engines: {node: '>=10'}
+    dev: true
+
+  /dotenv/14.3.2:
+    resolution: {integrity: sha512-vwEppIphpFdvaMCaHfCEv9IgwcxMljMw2TnAQBB4VWPvzXQLTb82jwmdOKzlEVUL3gNFT4l4TPKO+Bn+sqcrVQ==}
+    engines: {node: '>=12'}
     dev: true
 
   /dotenv/8.6.0:
