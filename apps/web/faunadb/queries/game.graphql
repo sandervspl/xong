@@ -1,0 +1,23 @@
+query GetGameById($id: ID!) {
+  findGameByID(id: $id) {
+    result
+    players {
+      data {
+        _id
+        username
+      }
+    }
+  }
+}
+
+mutation CreateGame($data: GameInput!) {
+  createGame(data: $data) {
+    _id
+    players {
+      data {
+        _id
+        username
+      }
+    }
+  }
+}

@@ -1,8 +1,16 @@
 type User {
-  username: String
+  username: String!
+  game: Game! @relation(name: "player")
+}
+
+type Game {
+  players: [User!] @relation(name: "player")
+  result: String!
 }
 
 type Query {
   users: [User]
-  findUserByUsername(username: String): User
+  findUserByUsername(username: String!): User
+
+  games: [Game]
 }

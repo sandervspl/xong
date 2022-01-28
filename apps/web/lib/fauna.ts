@@ -1,6 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
 
-import type { GetUsersQuery, UserInput } from '../faunadb/generated';
+import type { CreateGameMutation, GetGameByIdQuery, GetUsersQuery, UserInput } from '../faunadb/generated';
 import { getSdk } from '../faunadb/generated';
 
 
@@ -20,8 +20,8 @@ export async function listUsers(): Promise<GetUsersQuery['users']['data']> {
   return res.users.data;
 };
 
-export const createUser = (newUser: UserInput) => {
-  return sdk.CreateUser({ input: newUser });
+export async function createUser(newUser: UserInput) {
+  // return sdk.CreateUser({ input: newUser });
 
   // const mutation = gql`
   //   mutation createUser($input: GuestbookEntryInput!) {
@@ -37,3 +37,21 @@ export const createUser = (newUser: UserInput) => {
 
   // return graphQLClient.request(mutation, { input: newUser });
 };
+
+export async function getGameById(id: string): Promise<GetGameByIdQuery['findGameByID']> {
+  const res = await sdk.GetGameById({ id });
+  return res.findGameByID;
+}
+
+export async function createGame(playerIds: string[]): Promise<CreateGameMutation['createGame']> {
+  const res = await sdk.CreateGame({
+    data: {
+      result: 'pending',
+      players: {
+        connect: playerIds,
+      },
+    },
+  });
+
+  return res.createGame;
+}
