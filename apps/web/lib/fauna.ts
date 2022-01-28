@@ -1,6 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
 
-import type { CreateGameMutation, CreateUserMutation, GetGameByIdQuery, GetUsersQuery, UserInput } from '../faunadb/generated';
+import type { CreateGameMutation, GetGameByIdQuery, GetUsersQuery } from '../faunadb/generated';
 import { getSdk } from '../faunadb/generated';
 
 
@@ -13,22 +13,11 @@ const graphQLClient = new GraphQLClient(FAUNA_GRAPHQL_BASE_URL, {
   },
 });
 
-const sdk = getSdk(graphQLClient);
+export const sdk = getSdk(graphQLClient);
 
 export async function listUsers(): Promise<GetUsersQuery['users']['data']> {
   const res = await sdk.GetUsers();
   return res.users.data;
-};
-
-export async function createUser(newUser: UserInput): Promise<void | CreateUserMutation['createUser']> {
-  const findUser = await sdk.GetUserByUsername({ username: newUser.username });
-
-  if (findUser.findUserByUsername) {
-    return;
-  }
-
-  const res = await sdk.CreateUser({ data: newUser });
-  return res.createUser;
 };
 
 export async function getGameById(id: string): Promise<GetGameByIdQuery['findGameByID']> {

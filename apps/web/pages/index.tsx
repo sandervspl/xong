@@ -1,42 +1,62 @@
 import * as React from 'react';
-import { useMutation } from 'react-query';
 import axios from 'axios';
+import { useMutation } from 'react-query';
 
+import type { GetUserByUsernameQuery } from 'faunadb/generated';
+import { SocketIOContext } from 'lib/SocketIOContext';
+
+
+type UserCreateResponse = GetUserByUsernameQuery['findUserByUsername'];
+
+let gameReadyEvt = '';
 
 export default function Page() {
+  const io = React.useContext(SocketIOContext);
   const gamesMutation = useMutation((playerIds: string[]) => {
     return axios.post('/api/games', playerIds);
   });
   const userMutation = useMutation((username: string) => {
-    return axios.post('/api/users', { username });
+    return axios.post<UserCreateResponse>('/api/users', { username });
   });
   const [username, setUsername] = React.useState('');
+  const [waiting, setWaiting] = React.useState(false);
+  const [userId, setUserId] = React.useState('');
+
+
+  React.useEffect(() => {
+    if (io && userId) {
+      // If we have previously queued we have to remove the game-ready event listener
+      if (gameReadyEvt) {
+        io.off(gameReadyEvt);
+      }
+      gameReadyEvt = `game-ready-${userId}`;
+
+      // Sub to personal game-ready event
+      io.on(gameReadyEvt, (data) => {
+        console.log(data);
+        setWaiting(false);
+      });
+    }
+  }, [userId, io]);
 
   async function onPlayClick() {
     if (gamesMutation.isLoading || gamesMutation.isSuccess) {
       return;
     }
 
-    // - Create user als dat nodig is
+    // - Create user if necessary
     userMutation.mutate(username, {
-      onSuccess(data) {
-        console.log(data);
+      async onSuccess(user) {
+        if (!user.data) {
+          return console.error('No user returned from API');
+        }
+
+        // - Add user to waiting room
+        axios.post('/api/waitingRooms', { id: user.data._id });
+        setUserId(user.data._id);
+        setWaiting(true);
       },
     });
-    // - Get waiting rooms
-    // - Voeg user toe aan waiting room
-    // - Als er 2 mensen wachten, start game
-    // - Clear waiting room
-
-    // const userIds = props.initialUsers.map((user) => user?._id).filter(Boolean) as string[];
-
-    // if (userIds.length >= 2) {
-    //   gamesMutation.mutate([userIds[0], userIds[1]], {
-    //     onSuccess(data) {
-    //       router.push(`/game/${data.data._id}`);
-    //     },
-    //   });
-    // }
   }
 
   return (
@@ -46,7 +66,7 @@ export default function Page() {
       </div>
       <div className="flex flex-col text-base">
         <input
-          className="h-8 rounded-lg p-5 text-1xl text-secondary bg-gray-300 placeholder-gray-400 focus:outline-primary-300"
+          className="h-8 rounded-lg p-5 text-xl text-secondary bg-gray-300 placeholder-gray-400 focus:outline-primary-300"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.currentTarget.value)}
@@ -54,15 +74,16 @@ export default function Page() {
 
         <div className="h-5" aria-hidden="true" />
 
-        <button className="fancy" onClick={onPlayClick}>
+        <button className="fancy" onClick={onPlayClick} disabled={waiting}>
           <span className="text-secondary text-3xl">play</span>
         </button>
       </div>
 
       <div className="text-primary-500">
-        {gamesMutation.isLoading && <div>Creating game...</div>}
-        {gamesMutation.isError && <div>An error occurred: {(gamesMutation.error as any).message}</div>}
-        {gamesMutation.isSuccess && <div>Game created!</div>}
+        {waiting && <p>Waiting for an opponent...</p>}
+        {gamesMutation.isLoading && <p>Creating game...</p>}
+        {gamesMutation.isError && <p>An error occurred: {(gamesMutation.error as any).message}</p>}
+        {gamesMutation.isSuccess && <p>Game created!</p>}
       </div>
     </main>
   );

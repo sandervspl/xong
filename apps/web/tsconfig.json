@@ -19,7 +19,8 @@
     "paths": {
       "lib/*": ["lib/*"],
       "utils/*": ["utils/*"],
-      "faunadb/*": ["faunadb/*"]
+      "faunadb/*": ["faunadb/*"],
+      "hooks/*": ["hooks/*"]
     },
     "lib": ["dom", "esnext"],
     "incremental": true

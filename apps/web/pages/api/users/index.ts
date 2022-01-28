@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { listUsers, createUser } from 'lib/fauna';
+import { listUsers, sdk } from 'lib/fauna';
 
 
 function isValidMethod(method?: string): method is 'GET' | 'POST' {
@@ -15,8 +15,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
 
     async POST() {
-      const created = await createUser(req.body);
-      res.status(200).json(created);
+      const findUser = await sdk.GetUserByUsername({ username: req.body.username });
+      if (findUser.findUserByUsername) {
+        return res.status(200).json(findUser.findUserByUsername);
+      }
+
+      const result = await sdk.CreateUser({
+        data: {
+          username: req.body.username,
+        },
+      });
+      return res.status(200).json(result.createUser);
     },
   };
 

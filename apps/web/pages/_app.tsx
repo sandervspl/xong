@@ -3,11 +3,15 @@ import type { AppProps } from 'next/app';
 import type { DehydratedState } from 'react-query';
 import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
 
+import useSocketIO from 'hooks/useSocketIO';
+import { SocketIOContext } from 'lib/SocketIOContext';
+
 import '../styles/tailwind.scss';
 import '../styles/globals.scss';
 
 
 function MyApp({ Component, pageProps: { state, ...pageProps } }: Props) {
+  const socketIOClient = useSocketIO();
   const [queryClient] = React.useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -22,7 +26,9 @@ function MyApp({ Component, pageProps: { state, ...pageProps } }: Props) {
   return (
     <QueryClientProvider client={queryClient}>
       <Hydrate state={state}>
-        <Component {...pageProps} />
+        <SocketIOContext.Provider value={socketIOClient}>
+          <Component {...pageProps} />
+        </SocketIOContext.Provider>
       </Hydrate>
     </QueryClientProvider>
   );
