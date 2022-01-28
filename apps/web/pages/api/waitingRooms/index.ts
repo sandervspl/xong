@@ -1,8 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Server } from 'socket.io';
 
-import { sdk } from 'lib/fauna';
-
 
 function isValidMethod(method?: string): method is 'GET' | 'POST' {
   return method === 'GET' || method === 'POST';
@@ -13,8 +11,8 @@ const state = new Set<string>();
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const handlers = {
     async GET() {
-      const result = await sdk.GetWaitingRooms();
-      res.status(200).json(result.waitingRooms.data);
+      // const result = await sdk.GetWaitingRooms();
+      res.status(200).json(state);
     },
 
     async POST() {
