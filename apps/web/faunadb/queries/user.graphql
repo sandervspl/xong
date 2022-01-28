@@ -8,6 +8,7 @@ query GetUsers {
   users {
     data {
       username
+      _id
     }
   }
 }
