@@ -3,10 +3,9 @@ import useSWR from 'swr';
 
 import type { GetUsersQuery } from 'faunadb/generated';
 
-import { listUsers } from '../lib/fauna';
+import { listUsers } from 'lib/fauna';
+import fetcher from 'utils/fetcher';
 
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type Props = {
   initialUsers: GetUsersQuery;

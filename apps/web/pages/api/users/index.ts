@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { listUsers, createUser } from '~lib/fauna';
+import { listUsers, createUser } from 'lib/fauna';
 
 
 function isValidMethod(method?: string): method is 'GET' | 'POST' {
