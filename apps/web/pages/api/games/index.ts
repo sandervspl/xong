@@ -9,10 +9,12 @@ function isValidMethod(method?: string): method is 'GET' | 'POST' {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const handlers = {
+    // Get all games?
     async GET() {
       res.status(200).json({});
     },
 
+    // Create game
     async POST() {
       const game = await createGame(req.body);
       res.status(200).json(game);

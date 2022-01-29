@@ -7,9 +7,11 @@ import { sdk } from 'lib/fauna';
 
 const GameLobby: React.VFC<Props> = (props) => {
   return (
-    <div>
+    <div className="text-primary-500">
       <h1 className="text-9xl">Game Lobby</h1>
-      {props.game && <pre>game: {JSON.stringify(props.game, null, 2)}</pre>}
+      <p className="text-3xl">
+        {props.game?.players.data[0]?.username} vs {props.game?.players.data[1]?.username}
+      </p>
     </div>
   );
 };
@@ -33,7 +35,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   };
 };
 
-export type Game = Promise<GetGameByIdQuery['findGameByID'] | null>;
+export type Game = GetGameByIdQuery['findGameByID'] | null;
 
 export type Props = {
   game: Game;

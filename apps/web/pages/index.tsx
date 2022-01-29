@@ -8,18 +8,16 @@ import { SocketIOContext } from 'lib/SocketIOContext';
 
 
 type UserCreateResponse = GetUserByUsernameQuery['findUserByUsername'];
+type WaitStates = null | 'waiting' | 'ready' | 'created';
 
 export default function Page() {
   const router = useRouter();
   const io = React.useContext(SocketIOContext);
-  const gamesMutation = useMutation((playerIds: string[]) => {
-    return axios.post('/api/games', playerIds);
-  });
   const userMutation = useMutation((username: string) => {
     return axios.post<UserCreateResponse>('/api/users', { username });
   });
   const [username, setUsername] = React.useState('');
-  const [waiting, setWaiting] = React.useState(false);
+  const [waitState, setWaitState] = React.useState<WaitStates>(null);
   const [userId, setUserId] = React.useState('');
 
 
@@ -29,17 +27,20 @@ export default function Page() {
 
       io.on('game-ready', (data) => {
         console.info('game ready!', data);
-        setWaiting(false);
-        router.push('/game/322041539697050185');
+        setWaitState('ready');
+      });
+
+      io.on('game-created', (gameId) => {
+        setWaitState('created');
+
+        setTimeout(() => {
+          router.push(`/game/${gameId}`);
+        }, 1000);
       });
     }
   }, [userId, io]);
 
   async function onPlayClick() {
-    if (gamesMutation.isLoading || gamesMutation.isSuccess) {
-      return;
-    }
-
     // - Create user if necessary
     userMutation.mutate(username, {
       async onSuccess(user) {
@@ -50,7 +51,7 @@ export default function Page() {
         // - Add user to waiting room
         io?.emit('queue', user.data._id);
         setUserId(user.data._id);
-        setWaiting(true);
+        setWaitState('waiting');
       },
     });
   }
@@ -66,21 +67,24 @@ export default function Page() {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.currentTarget.value)}
-          disabled={waiting}
+          disabled={waitState != null}
         />
 
         <div className="h-5" aria-hidden="true" />
 
-        <button className="fancy" onClick={onPlayClick} disabled={waiting}>
+        <button
+          className="fancy"
+          onClick={onPlayClick}
+          disabled={waitState != null}
+        >
           <span className="text-secondary text-3xl">play</span>
         </button>
       </div>
 
       <div className="text-primary-500 text-2xl">
-        {waiting && <p>Waiting for an opponent...</p>}
-        {gamesMutation.isLoading && <p>Creating game...</p>}
-        {gamesMutation.isError && <p>An error occurred: {(gamesMutation.error as any).message}</p>}
-        {gamesMutation.isSuccess && <p>Game created!</p>}
+        {waitState === 'waiting' && <p>Waiting for an opponent...</p>}
+        {waitState === 'ready' && <p>Opponent found! Creating game...</p>}
+        {waitState === 'created' && <p>Game created! Get ready!</p>}
       </div>
     </main>
   );
