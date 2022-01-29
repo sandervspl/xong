@@ -2,8 +2,8 @@ import * as React from 'react';
 import type { GetServerSideProps } from 'next';
 
 import type { GetGameByIdQuery } from 'faunadb/generated';
-import fetcher from 'utils/fetcher';
 import redirect from 'utils/redirect';
+import { sdk } from 'lib/fauna';
 
 
 const GameLobby: React.VFC<Props> = (props) => {
@@ -16,15 +16,15 @@ const GameLobby: React.VFC<Props> = (props) => {
 };
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const game = await fetcher<Game>(`/api/games/${ctx.params!.gameId}`, ctx);
+  const game = await sdk.GetGameById({ id: ctx.query!.gameId as string });
 
-  if (!game) {
+  if (!game.findGameByID) {
     return redirect(ctx.res);
   }
 
   return {
     props: {
-      game,
+      game: game.findGameByID,
     },
   };
 };
