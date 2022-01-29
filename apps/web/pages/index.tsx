@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 
 import type { GetUserByUsernameQuery } from 'faunadb/generated';
 import { SocketIOContext } from 'lib/SocketIOContext';
+import useLocalStorage from 'hooks/userLocalStorage';
 
 
 type UserCreateResponse = GetUserByUsernameQuery['findUserByUsername'];
@@ -13,45 +14,46 @@ type WaitStates = null | 'waiting' | 'ready' | 'created';
 export default function Page() {
   const router = useRouter();
   const io = React.useContext(SocketIOContext);
+  const { getItem, setItem } = useLocalStorage();
   const userMutation = useMutation((username: string) => {
     return axios.post<UserCreateResponse>('/api/users', { username });
   });
-  const [username, setUsername] = React.useState('');
+  const [username, setUsername] = React.useState(getItem('name') || '');
   const [waitState, setWaitState] = React.useState<WaitStates>(null);
-  const [userId, setUserId] = React.useState('');
 
-
-  React.useEffect(() => {
-    if (io && userId) {
-      console.info('Waiting for game...');
-
-      io.on('game-ready', (data) => {
-        console.info('game ready!', data);
-        setWaitState('ready');
-      });
-
-      io.on('game-created', (gameId) => {
-        setWaitState('created');
-
-        setTimeout(() => {
-          router.push(`/game/${gameId}`);
-        }, 1000);
-      });
-    }
-  }, [userId, io]);
 
   async function onPlayClick() {
-    // - Create user if necessary
+    // Create user if necessary
     userMutation.mutate(username, {
       async onSuccess(user) {
         if (!user.data) {
           return console.error('No user returned from API');
         }
 
-        // - Add user to waiting room
+        // Save to localStorage
+        setItem('name', username);
+        setItem('user_id', user.data._id);
+
+        // Add user to waiting room
         io?.emit('queue', user.data._id);
-        setUserId(user.data._id);
         setWaitState('waiting');
+
+        console.info('Waiting for game...');
+
+        // Listen to game creation updates
+        io?.on('game-ready', (data) => {
+          console.info('game ready!', data);
+          setWaitState('ready');
+        });
+
+        // Game ready, navigate to game
+        io?.on('game-created', (gameId) => {
+          setWaitState('created');
+
+          setTimeout(() => {
+            router.push(`/game/${gameId}`);
+          }, 1000);
+        });
       },
     });
   }
