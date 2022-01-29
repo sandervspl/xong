@@ -2,7 +2,6 @@ import * as React from 'react';
 import type { GetServerSideProps } from 'next';
 
 import type { GetGameByIdQuery } from 'faunadb/generated';
-import redirect from 'utils/redirect';
 import { sdk } from 'lib/fauna';
 
 
@@ -19,7 +18,12 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const game = await sdk.GetGameById({ id: ctx.query!.gameId as string });
 
   if (!game.findGameByID) {
-    return redirect(ctx.res);
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
   }
 
   return {
