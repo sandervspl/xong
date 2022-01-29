@@ -1,6 +1,7 @@
 import * as React from 'react';
 import axios from 'axios';
 import { useMutation } from 'react-query';
+import { useRouter } from 'next/router';
 
 import type { GetUserByUsernameQuery } from 'faunadb/generated';
 import { SocketIOContext } from 'lib/SocketIOContext';
@@ -9,6 +10,7 @@ import { SocketIOContext } from 'lib/SocketIOContext';
 type UserCreateResponse = GetUserByUsernameQuery['findUserByUsername'];
 
 export default function Page() {
+  const router = useRouter();
   const io = React.useContext(SocketIOContext);
   const gamesMutation = useMutation((playerIds: string[]) => {
     return axios.post('/api/games', playerIds);
@@ -28,6 +30,7 @@ export default function Page() {
       io.on('game-ready', (data) => {
         console.info('game ready!', data);
         setWaiting(false);
+        router.push('/game/322041539697050185');
       });
     }
   }, [userId, io]);
