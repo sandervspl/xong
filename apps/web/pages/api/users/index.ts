@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     async POST() {
       const findUser = await sdk.GetUserByUsername({ username: req.body.username });
       if (findUser.findUserByUsername) {
-        return res.status(200).json(findUser.findUserByUsername);
+        return res.status(200).json({ user: findUser.findUserByUsername, existed: true });
       }
 
       const result = await sdk.CreateUser({
@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           username: req.body.username,
         },
       });
-      return res.status(200).json(result.createUser);
+      return res.status(200).json({ user: result.createUser, existed: false });
     },
   };
 

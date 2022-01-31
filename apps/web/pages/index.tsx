@@ -8,34 +8,53 @@ import { SocketIOContext } from 'lib/SocketIOContext';
 import useLocalStorage from 'hooks/userLocalStorage';
 
 
-type UserCreateResponse = GetUserByUsernameQuery['findUserByUsername'];
-type WaitStates = null | 'waiting' | 'ready' | 'created';
-
 export default function Page() {
   const router = useRouter();
   const io = React.useContext(SocketIOContext);
-  const { getItem, setItem } = useLocalStorage();
+  const { getItem, setItem, updateItem } = useLocalStorage();
   const userMutation = useMutation((username: string) => {
+    setError('');
     return axios.post<UserCreateResponse>('/api/users', { username });
   });
-  const [username, setUsername] = React.useState(getItem('name') || '');
+  const [username, setUsername] = React.useState(
+    getItem('usernames')?.find((v) => v.active)?.name || '',
+  );
   const [waitState, setWaitState] = React.useState<WaitStates>(null);
+  const [error, setError] = React.useState('');
 
 
   async function onPlayClick() {
     // Create user if necessary
     userMutation.mutate(username, {
-      async onSuccess(user) {
-        if (!user.data) {
+      async onSuccess(response) {
+        const { data } = response;
+        const { user } = data;
+
+        if (user == null) {
           return console.error('No user returned from API');
         }
 
+        const isLocalSavedUser = getItem('usernames')?.find((v) => v.id === user._id);
+        if (data.existed && !isLocalSavedUser) {
+          return setError('This username already exists and/or is not yours. Please try another name!');
+        }
+
         // Save to localStorage
-        setItem('name', username);
-        setItem('user_id', user.data._id);
+        if (!getItem('usernames')) {
+          setItem('usernames', []);
+        }
+        updateItem('usernames', (draft) => {
+          draft!.push({
+            name: user.username,
+            id: user._id,
+            active: true,
+          });
+
+          return draft;
+        });
 
         // Add user to waiting room
-        io?.emit('queue', user.data._id);
+        io?.emit('queue', user._id);
         setWaitState('waiting');
 
         console.info('Waiting for game...');
@@ -71,6 +90,7 @@ export default function Page() {
           onChange={(e) => setUsername(e.currentTarget.value)}
           disabled={waitState != null}
         />
+        {error && <p className="text-red-500">{error}</p>}
 
         <div className="h-5" aria-hidden="true" />
 
@@ -91,3 +111,10 @@ export default function Page() {
     </main>
   );
 }
+
+type UserCreateResponse = {
+  user: GetUserByUsernameQuery['findUserByUsername'];
+  existed: boolean;
+};
+
+type WaitStates = null | 'waiting' | 'ready' | 'created';
