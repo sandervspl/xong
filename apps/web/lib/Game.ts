@@ -5,17 +5,11 @@ import type { StoredUser } from 'hooks/userLocalStorage.js';
 import { theme } from '../tailwind.config.js';
 
 
-const PLR_HEIGHT = 20;
-const PLR_WIDTH = 2;
-const VELOCITY = 1;
-
-
 class Game {
   #canvas: HTMLCanvasElement;
   #ctx: CanvasRenderingContext2D;
   #players: Record<string, PlayerState>;
   #user?: StoredUser;
-  // #userIsPlayer: boolean;
   #keysPressed: Record<string, boolean> = {};
   #gameData: GameState;
   #socket: Socket;
@@ -32,15 +26,14 @@ class Game {
     this.#gameData = gameState;
     this.#socket = socket;
     this.#user = user;
-    // this.#userIsPlayer = userIsPlayer;
 
     this.#players = Object.entries(gameState.players).reduce((acc, [plrId, plrState], i) => {
       acc[plrId] = {
         id: plrId,
-        x: 0 + (canvas.width - PLR_WIDTH) * i,
+        x: 0 + (canvas.width - Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT)) * i,
         y: plrState.y,
-        width: PLR_WIDTH,
-        height: PLR_HEIGHT,
+        width: Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH!),
+        height: Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT!),
       };
 
       return acc;
@@ -82,11 +75,13 @@ class Game {
 
     this.#keysPressed[key] = true;
 
-    this.#socket.emit('player-key-down', {
-      gameId: this.#gameData.id,
-      userId: this.#user!.id,
-      key,
-    });
+    if (this.#user) {
+      this.#socket.emit('player-key-down', {
+        gameId: this.#gameData.id,
+        userId: this.#user.id,
+        key,
+      });
+    }
   };
 
   #onKeyUp = (e: KeyboardEvent) => {
@@ -94,22 +89,24 @@ class Game {
 
     this.#keysPressed[key] = false;
 
-    this.#socket.emit('player-key-up', {
-      gameId: this.#gameData.id,
-      userId: this.#user!.id,
-      y: this.#players[this.#user!.id].y,
-      key,
-    });
+    if (this.#user) {
+      this.#socket.emit('player-key-up', {
+        gameId: this.#gameData.id,
+        userId: this.#user.id,
+        y: this.#players[this.#user.id].y,
+        key,
+      });
+    }
   };
 
   #updatePositions = () => {
     for (const playerId of Object.keys(this.#players)) {
       if (this.#players[playerId].direction === 'up') {
-        this.#players[playerId].y -= VELOCITY;
+        this.#players[playerId].y -= Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
       }
 
       if (this.#players[playerId].direction === 'down') {
-        this.#players[playerId].y += VELOCITY;
+        this.#players[playerId].y += Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
       }
     }
   };
@@ -124,8 +121,8 @@ class Game {
       this.#ctx.rect(
         this.#players[playerId].x,
         this.#players[playerId].y,
-        PLR_WIDTH,
-        PLR_HEIGHT,
+        Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH),
+        Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT),
       );
       this.#ctx.stroke();
     }
