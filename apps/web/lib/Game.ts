@@ -10,6 +10,7 @@ const PLR_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT);
 const FIELD_MARGIN = Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
 const FIELD_WIDTH = Number(process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH);
 const FIELD_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT);
+const XO_SQUARE_SIZE = Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE);
 const VELOCITY = Number(process.env.NEXT_PUBLIC_GAME_VELOCITY);
 
 class Game {
@@ -134,9 +135,39 @@ class Game {
     }
   };
 
-  #draw = () => {
-    this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+  #drawXOField = () => {
+    const XOS = XO_SQUARE_SIZE;
+    const Mx = this.#canvas.width / 2;
+    const My = this.#canvas.height / 2;
+    const L1x = Mx - (XOS / 2);
+    const L1y = My - ((XOS / 2) * 3);
+    const L2x = Mx + (XOS / 2);
+    const L2y = L1y;
+    const L3x = Mx - ((XOS / 2) * 3);
+    const L3y = My - (XOS / 2);
+    const L4x = L3x;
+    const L4y = My + (XOS / 2);
 
+    for (const [d, x, y] of [
+      [0, L1x, L1y],
+      [0, L2x, L2y],
+      [1, L3x, L3y],
+      [1, L4x, L4y],
+    ]) {
+      this.#ctx.beginPath();
+      this.#ctx.lineWidth = 2;
+      this.#ctx.strokeStyle = theme.extend.colors.primary[900];
+      this.#ctx.moveTo(x, y);
+      if (d) {
+        this.#ctx.lineTo(x + (XOS * 3), y);
+      } else {
+        this.#ctx.lineTo(x, y + (XOS * 3));
+      }
+      this.#ctx.stroke();
+    }
+  };
+
+  #drawPlayers = () => {
     for (const playerId of Object.keys(this.#players)) {
       this.#ctx.rect(
         this.#players[playerId].x,
@@ -147,6 +178,12 @@ class Game {
       this.#ctx.fillStyle = theme.extend.colors.primary[600];
       this.#ctx.fill();
     }
+  };
+
+  #draw = () => {
+    this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#drawXOField();
+    this.#drawPlayers();
   };
 
   #tick = () => {
