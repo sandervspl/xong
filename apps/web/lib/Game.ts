@@ -28,12 +28,19 @@ class Game {
     this.#user = user;
 
     this.#players = Object.entries(gameState.players).reduce((acc, [plrId, plrState], i) => {
+      let x: number;
+      if (i === 0) {
+        x = Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
+      } else {
+        x = Number(process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH) - Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH) - Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
+      }
+
       acc[plrId] = {
         id: plrId,
-        x: 0 + (canvas.width - Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT)) * i,
+        x,
         y: plrState.y,
-        width: Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH!),
-        height: Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT!),
+        width: Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH),
+        height: Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT),
       };
 
       return acc;
@@ -121,8 +128,8 @@ class Game {
       this.#ctx.rect(
         this.#players[playerId].x,
         this.#players[playerId].y,
-        Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH),
-        Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT),
+        this.#players[playerId].width,
+        this.#players[playerId].height,
       );
       this.#ctx.stroke();
     }

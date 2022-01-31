@@ -60,10 +60,12 @@ const GameLobby: React.VFC<Props> = (props) => {
               id="game"
               ref={canvasRef}
               className={classNames(
-                'border-primary-900 border-solid border-2 w-full h-full',
+                'border-primary-900 border-solid border-2',
                 { hidden: loading },
                 { block: !loading },
               )}
+              width={`${process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH}px`}
+              height={`${process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT}px`}
             />
           </div>
         </div>
