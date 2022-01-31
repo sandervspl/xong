@@ -5,13 +5,20 @@ import type { StoredUser } from 'hooks/userLocalStorage.js';
 import { theme } from '../tailwind.config.js';
 
 
+const PLR_WIDTH = Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH);
+const PLR_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT);
+const FIELD_MARGIN = Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
+const FIELD_WIDTH = Number(process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH);
+const FIELD_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT);
+const VELOCITY = Number(process.env.NEXT_PUBLIC_GAME_VELOCITY);
+
 class Game {
   #canvas: HTMLCanvasElement;
   #ctx: CanvasRenderingContext2D;
   #players: Record<string, PlayerState>;
   #user?: StoredUser;
   #keysPressed: Record<string, boolean> = {};
-  #gameData: GameState;
+  #gameState: GameState;
   #socket: Socket;
 
   constructor(
@@ -23,24 +30,24 @@ class Game {
   ) {
     this.#canvas = canvas;
     this.#ctx = this.#canvas.getContext('2d')!;
-    this.#gameData = gameState;
+    this.#gameState = gameState;
     this.#socket = socket;
     this.#user = user;
 
     this.#players = Object.entries(gameState.players).reduce((acc, [plrId, plrState], i) => {
       let x: number;
       if (i === 0) {
-        x = Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
+        x = FIELD_MARGIN;
       } else {
-        x = Number(process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH) - Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH) - Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
+        x = FIELD_WIDTH - PLR_WIDTH - FIELD_MARGIN;
       }
 
       acc[plrId] = {
         id: plrId,
         x,
         y: plrState.y,
-        width: Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH),
-        height: Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT),
+        width: PLR_WIDTH,
+        height: PLR_HEIGHT,
       };
 
       return acc;
@@ -84,7 +91,7 @@ class Game {
 
     if (this.#user) {
       this.#socket.emit('player-key-down', {
-        gameId: this.#gameData.id,
+        gameId: this.#gameState.id,
         userId: this.#user.id,
         key,
       });
@@ -98,7 +105,7 @@ class Game {
 
     if (this.#user) {
       this.#socket.emit('player-key-up', {
-        gameId: this.#gameData.id,
+        gameId: this.#gameState.id,
         userId: this.#user.id,
         y: this.#players[this.#user.id].y,
         key,
@@ -111,16 +118,16 @@ class Game {
       let next = this.#players[playerId].y;
 
       if (this.#players[playerId].direction === 'up') {
-        next = this.#players[playerId].y - Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
+        next = this.#players[playerId].y - VELOCITY;
       }
 
       if (this.#players[playerId].direction === 'down') {
-        next = this.#players[playerId].y + Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
+        next = this.#players[playerId].y + VELOCITY;
       }
 
       if (
         next >= 0 &&
-        next <= Number(process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT) - Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT)
+        next <= FIELD_HEIGHT - PLR_HEIGHT
       ) {
         this.#players[playerId].y = next;
       }
