@@ -6,6 +6,7 @@ type User {
 type Game {
   players: [User!] @relation(name: "player")
   result: String!
+  playState: String!
 }
 
 type Query {

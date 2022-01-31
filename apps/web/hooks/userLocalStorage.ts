@@ -1,12 +1,14 @@
 import isServer from 'utils/isServer';
 
 
-type LocalStorage = {
-  usernames?: null | {
-    name: string;
-    id: string;
-    active: boolean;
-  }[];
+export type LocalStorage = {
+  usernames?: StoredUser[];
+};
+
+export type StoredUser = {
+  name: string;
+  id: string;
+  active: boolean;
 };
 
 

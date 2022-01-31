@@ -32,6 +32,7 @@ export async function createGame(playerIds: string[]): Promise<CreateGameMutatio
       players: {
         connect: playerIds,
       },
+      playState: 'loading',
     },
   });
 

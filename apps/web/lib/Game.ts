@@ -1,37 +1,50 @@
 import type { Socket } from 'socket.io-client';
 
-import type { GetGameByIdQuery } from 'faunadb/generated.js';
+import type { StoredUser } from 'hooks/userLocalStorage.js';
 
 import { theme } from '../tailwind.config.js';
+
+
+const PLR_HEIGHT = 20;
+const PLR_WIDTH = 2;
+const VELOCITY = 1;
 
 
 class Game {
   #canvas: HTMLCanvasElement;
   #ctx: CanvasRenderingContext2D;
-  #players = [] as unknown as [Player, Player]; // This gives #players a fixed array length
+  #players: Record<string, PlayerState>;
+  #user?: StoredUser;
+  // #userIsPlayer: boolean;
   #keysPressed: Record<string, boolean> = {};
-  #gameData: GetGameByIdQuery['findGameByID'];
+  #gameData: GameState;
+  #socket: Socket;
 
   constructor(
     canvas: HTMLCanvasElement,
     socket: Socket,
-    game: GetGameByIdQuery['findGameByID'],
+    gameState: GameState,
+    user: StoredUser | undefined,
     userIsPlayer: boolean,
   ) {
     this.#canvas = canvas;
     this.#ctx = this.#canvas.getContext('2d')!;
-    this.#gameData = game;
+    this.#gameData = gameState;
+    this.#socket = socket;
+    this.#user = user;
+    // this.#userIsPlayer = userIsPlayer;
 
-    const PLR_HEIGHT = 20;
-    const PLR_WIDTH = 2;
-    this.#players = [0, 1].map((_, i) => {
-      return {
+    this.#players = Object.entries(gameState.players).reduce((acc, [plrId, plrState], i) => {
+      acc[plrId] = {
+        id: plrId,
         x: 0 + (canvas.width - PLR_WIDTH) * i,
-        y: (canvas.height / 2) - (PLR_HEIGHT / 2),
+        y: plrState.y,
         width: PLR_WIDTH,
         height: PLR_HEIGHT,
       };
-    }) as [Player, Player]; // Typescript does not know this returns an array of 2
+
+      return acc;
+    }, {});
 
     // Only give players of this game keyboard controls
     if (userIsPlayer) {
@@ -39,7 +52,16 @@ class Game {
       document.addEventListener('keyup', this.#onKeyUp);
     }
 
-    this.#draw();
+    socket.on('player-key-down', (data: PlayerKeypressData) => {
+      this.#players[data.userId].direction = data.direction;
+    });
+
+    socket.on('player-key-up', (data: PlayerKeypressUpData) => {
+      this.#players[data.userId].direction = data.direction;
+      this.#players[data.userId].y = data.y;
+    });
+
+    this.#tick();
   }
 
   unload = () => {
@@ -48,58 +70,98 @@ class Game {
   };
 
   start = () => {
-    this.#draw();
+    // this.#tick();
   };
 
   #onKeyDown = (e: KeyboardEvent) => {
-    if (this.#keysPressed[e.key]) {
+    const key = e.key.toLowerCase();
+
+    if (this.#keysPressed[key]) {
       return;
     }
 
-    console.log('key down', e.key);
+    this.#keysPressed[key] = true;
 
-    this.#keysPressed[e.key] = true;
-
-    // socket?.emit('player-key-down', {
-    //   userId: getItem('user_id'),
-    //   key: e.key,
-    // });
+    this.#socket.emit('player-key-down', {
+      gameId: this.#gameData.id,
+      userId: this.#user!.id,
+      key,
+    });
   };
 
   #onKeyUp = (e: KeyboardEvent) => {
-    console.log('key up', e.key);
+    const key = e.key.toLowerCase();
 
-    this.#keysPressed[e.key] = false;
+    this.#keysPressed[key] = false;
 
-    // socket?.emit('player-key-up', {
-    //   userId: getItem('user_id'),
-    //   key: e.key,
-    // });
+    this.#socket.emit('player-key-up', {
+      gameId: this.#gameData.id,
+      userId: this.#user!.id,
+      y: this.#players[this.#user!.id].y,
+      key,
+    });
   };
 
-  #draw() {
+  #updatePositions = () => {
+    for (const playerId of Object.keys(this.#players)) {
+      if (this.#players[playerId].direction === 'up') {
+        this.#players[playerId].y -= VELOCITY;
+      }
+
+      if (this.#players[playerId].direction === 'down') {
+        this.#players[playerId].y += VELOCITY;
+      }
+    }
+  };
+
+  #draw = () => {
     this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
 
-    for (const player of this.#players)  {
+    for (const playerId of Object.keys(this.#players)) {
       this.#ctx.beginPath();
       this.#ctx.lineWidth = 2;
       this.#ctx.strokeStyle = theme.extend.colors.primary[600];
       this.#ctx.rect(
-        player.x,
-        player.y,
-        player.width,
-        player.height,
+        this.#players[playerId].x,
+        this.#players[playerId].y,
+        PLR_WIDTH,
+        PLR_HEIGHT,
       );
       this.#ctx.stroke();
     }
-  }
+  };
+
+  #tick = () => {
+    this.#updatePositions();
+    this.#draw();
+    requestAnimationFrame(this.#tick);
+  };
 }
 
-type Player = {
+type GameState = {
+  id: string;
+  players: Record<string, {
+    y: number;
+    direction: null | 'up' | 'down';
+  }>;
+};
+
+type PlayerState = {
+  id: string;
   x: number;
   y: number;
   width: number;
   height: number;
+  direction: null | 'up' | 'down';
+};
+
+type PlayerKeypressData = {
+  userId: string;
+  direction: null | 'up' | 'down';
+};
+
+type PlayerKeypressUpData = PlayerKeypressData & {
+  y: number;
 };
 
 export default Game;

@@ -11,7 +11,7 @@ function useSocketIO() {
     const socket = connect(process.env.NEXT_PUBLIC_WEBSOCKET_URL!);
 
     socket.on('connect', () => {
-      console.info('connected!');
+      console.info('connected to socket server!');
     });
 
     setIoClient(socket);

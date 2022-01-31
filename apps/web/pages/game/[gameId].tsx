@@ -6,26 +6,41 @@ import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import useSocketIO from 'hooks/useSocketIO';
 import useLocalStorage from 'hooks/userLocalStorage';
+import { useRouter } from 'next/router';
 
 
 const GameLobby: React.VFC<Props> = (props) => {
   const socket = useSocketIO();
   const { getItem } = useLocalStorage();
+  const { query } = useRouter();
   const playerIds = props.game!.players.data.map((player) => player!._id);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const gameRef = React.useRef<Game | null>(null);
-  const user = getItem('usernames')?.find((val) => val.active && playerIds.includes(val.id));
+  const user = getItem('usernames')?.find((val) => val.active);
   const userIsPlayer = !!user && playerIds.includes(user.id);
 
   React.useEffect(() => {
     if (socket) {
-      socket.emit('user-joined-game', user?.id);
-
-      socket.on('game-start', () => {
-        gameRef.current!.start();
+      socket.emit('user-joined-game', {
+        userId: user?.id,
+        gameId: (query as Queries).gameId,
       });
 
-      gameRef.current = new Game(canvasRef.current!, socket, props.game, userIsPlayer);
+      socket.on('user-joined-game', (gameState) => {
+        console.info('Connected to game lobby!');
+
+        gameRef.current = new Game(
+          canvasRef.current!,
+          socket,
+          gameState,
+          user,
+          userIsPlayer,
+        );
+      });
+
+      // socket.on('game-start', () => {
+      //   gameRef.current!.start();
+      // });
     }
   }, [socket]);
 
