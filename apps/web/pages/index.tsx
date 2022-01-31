@@ -43,12 +43,22 @@ export default function Page() {
         if (!getItem('usernames')) {
           setItem('usernames', []);
         }
+
         updateItem('usernames', (draft) => {
-          draft!.push({
-            name: user.username,
-            id: user._id,
-            active: true,
+          // Update active username
+          draft = draft!.map((v) => {
+            v.active = v.name === user.username;
+            return v;
           });
+
+          // Push new usernames
+          if (!draft.map((v) => v.name).includes(user.username)) {
+            draft!.push({
+              name: user.username,
+              id: user._id,
+              active: true,
+            });
+          }
 
           return draft;
         });
