@@ -1,12 +1,13 @@
 import * as React from 'react';
 import type { GetServerSideProps } from 'next';
+import classNames from 'classnames';
+import { useRouter } from 'next/router';
 
 import type { GetGameByIdQuery } from 'faunadb/generated';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import useSocketIO from 'hooks/useSocketIO';
 import useLocalStorage from 'hooks/userLocalStorage';
-import { useRouter } from 'next/router';
 
 
 const GameLobby: React.VFC<Props> = (props) => {
@@ -18,6 +19,7 @@ const GameLobby: React.VFC<Props> = (props) => {
   const gameRef = React.useRef<Game | null>(null);
   const user = getItem('usernames')?.find((val) => val.active);
   const userIsPlayer = !!user && playerIds.includes(user.id);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     if (socket) {
@@ -36,11 +38,9 @@ const GameLobby: React.VFC<Props> = (props) => {
           user,
           userIsPlayer,
         );
-      });
 
-      // socket.on('game-start', () => {
-      //   gameRef.current!.start();
-      // });
+        setLoading(false);
+      });
     }
   }, [socket]);
 
@@ -53,11 +53,19 @@ const GameLobby: React.VFC<Props> = (props) => {
             <span>0 - 0</span>
             <span>{props.game?.players.data[1]?.username}</span>
           </div>
-          <canvas
-            id="game"
-            ref={canvasRef}
-            className="border-primary-900 border-solid border-2 w-full h-[600px]"
-          />
+
+          <div className="grid place-items-center w-full h-[600px]">
+            {loading && <p className="text-6xl">Loading game...</p>}
+            <canvas
+              id="game"
+              ref={canvasRef}
+              className={classNames(
+                'border-primary-900 border-solid border-2 w-full h-full',
+                { hidden: loading },
+                { block: !loading },
+              )}
+            />
+          </div>
         </div>
       </div>
     </div>
