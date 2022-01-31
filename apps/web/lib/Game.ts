@@ -108,12 +108,21 @@ class Game {
 
   #updatePositions = () => {
     for (const playerId of Object.keys(this.#players)) {
+      let next = this.#players[playerId].y;
+
       if (this.#players[playerId].direction === 'up') {
-        this.#players[playerId].y -= Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
+        next = this.#players[playerId].y - Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
       }
 
       if (this.#players[playerId].direction === 'down') {
-        this.#players[playerId].y += Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
+        next = this.#players[playerId].y + Number(process.env.NEXT_PUBLIC_GAME_VELOCITY!);
+      }
+
+      if (
+        next >= 0 &&
+        next <= Number(process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT) - Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT)
+      ) {
+        this.#players[playerId].y = next;
       }
     }
   };
