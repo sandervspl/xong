@@ -54,8 +54,21 @@ const GameLobby: React.VFC<Props> = (props) => {
             <span>{props.game?.players.data[1]?.username}</span>
           </div>
 
-          <div className="grid place-items-center w-full h-[600px]">
+          <div className="relative grid place-items-center w-full h-[600px]">
             {loading && <p className="text-6xl">Loading game...</p>}
+            {gameRef.current?.cells?.map(([x1, y1, cb], i) => (
+              <button
+                key={i}
+                className="absolute bg-primary-200 border-2 border-solid border-secondary opacity-0 hover:opacity-50"
+                style={{
+                  top: y1 + 4 + 'px',
+                  left: x1 + 4 + 'px',
+                  width: Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE) - 4 + 'px',
+                  height: Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE) - 4 + 'px',
+                }}
+                onClick={cb}
+              />
+            ))}
             <canvas
               id="game"
               ref={canvasRef}

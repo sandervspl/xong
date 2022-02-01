@@ -21,6 +21,7 @@ class Game {
   #keysPressed: Record<string, boolean> = {};
   #gameState: GameState;
   #socket: Socket;
+  cells: [number, number, ((e: unknown) => void)][] = [];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -49,6 +50,7 @@ class Game {
         y: plrState.y,
         width: PLR_WIDTH,
         height: PLR_HEIGHT,
+        selected: null,
       };
 
       return acc;
@@ -69,6 +71,7 @@ class Game {
       this.#players[data.userId].y = data.y;
     });
 
+    this.#drawXOField();
     this.#tick();
   }
 
@@ -101,7 +104,6 @@ class Game {
 
   #onKeyUp = (e: KeyboardEvent) => {
     const key = e.key.toLowerCase();
-
     this.#keysPressed[key] = false;
 
     if (this.#user) {
@@ -126,27 +128,37 @@ class Game {
         next = this.#players[playerId].y + VELOCITY;
       }
 
-      if (
-        next >= 0 &&
-        next <= FIELD_HEIGHT - PLR_HEIGHT
-      ) {
+      if (next >= 0 && next <= FIELD_HEIGHT - PLR_HEIGHT) {
         this.#players[playerId].y = next;
       }
     }
   };
 
   #drawXOField = () => {
-    const XOS = XO_SQUARE_SIZE;
+    const CELL_SIZE = XO_SQUARE_SIZE;
     const Mx = this.#canvas.width / 2;
     const My = this.#canvas.height / 2;
-    const L1x = Mx - (XOS / 2);
-    const L1y = My - ((XOS / 2) * 3);
-    const L2x = Mx + (XOS / 2);
+    const L1x = Mx - (CELL_SIZE / 2);
+    const L1y = My - ((CELL_SIZE / 2) * 3);
+    const L2x = Mx + (CELL_SIZE / 2);
     const L2y = L1y;
-    const L3x = Mx - ((XOS / 2) * 3);
-    const L3y = My - (XOS / 2);
+    const L3x = Mx - ((CELL_SIZE / 2) * 3);
+    const L3y = My - (CELL_SIZE / 2);
     const L4x = L3x;
-    const L4y = My + (XOS / 2);
+    const L4y = My + (CELL_SIZE / 2);
+
+    if (this.cells.length === 0) {
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          const CellX = L3x + (CELL_SIZE * i);
+          const CellY = L1y + (CELL_SIZE * j);
+          this.cells.push([CellX, CellY, () => {
+            console.log({ i, j });
+            this.#players[this.#user!.id].clicked = [i, j];
+          }]);
+        }
+      }
+    }
 
     for (const [d, x, y] of [
       [0, L1x, L1y],
@@ -159,9 +171,9 @@ class Game {
       this.#ctx.strokeStyle = theme.extend.colors.primary[900];
       this.#ctx.moveTo(x, y);
       if (d) {
-        this.#ctx.lineTo(x + (XOS * 3), y);
+        this.#ctx.lineTo(x + (CELL_SIZE * 3), y);
       } else {
-        this.#ctx.lineTo(x, y + (XOS * 3));
+        this.#ctx.lineTo(x, y + (CELL_SIZE * 3));
       }
       this.#ctx.stroke();
     }
@@ -208,6 +220,8 @@ type PlayerState = {
   width: number;
   height: number;
   direction: null | 'up' | 'down';
+
+  clicked: null | [number, number];
 };
 
 type PlayerKeypressData = {
