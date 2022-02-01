@@ -19,9 +19,10 @@ class Game {
   #players: Record<string, PlayerState>;
   #user?: StoredUser;
   #keysPressed: Record<string, boolean> = {};
-  #gameState: GameState;
   #socket: Socket;
-  cells: [number, number, ((e: unknown) => void)][] = [];
+  #userIsPlayer: boolean;
+  gameState: GameState;
+  cells: [number, number, string][] = [];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -30,11 +31,12 @@ class Game {
     user: StoredUser | undefined,
     userIsPlayer: boolean,
   ) {
+    this.gameState = gameState;
     this.#canvas = canvas;
     this.#ctx = this.#canvas.getContext('2d')!;
-    this.#gameState = gameState;
     this.#socket = socket;
     this.#user = user;
+    this.#userIsPlayer = userIsPlayer;
 
     this.#players = Object.entries(gameState.players).reduce((acc, [plrId, plrState], i) => {
       let x: number;
@@ -50,7 +52,7 @@ class Game {
         y: plrState.y,
         width: PLR_WIDTH,
         height: PLR_HEIGHT,
-        selected: null,
+        mark: plrState.mark,
       };
 
       return acc;
@@ -84,6 +86,14 @@ class Game {
     // this.#tick();
   };
 
+  getPlayer = (userId?: string) => {
+    if (userId == null) {
+      return;
+    }
+
+    return this.#players[userId];
+  };
+
   #onKeyDown = (e: KeyboardEvent) => {
     const key = e.key.toLowerCase();
 
@@ -95,7 +105,7 @@ class Game {
 
     if (this.#user) {
       this.#socket.emit('player-key-down', {
-        gameId: this.#gameState.id,
+        gameId: this.gameState.id,
         userId: this.#user.id,
         key,
       });
@@ -108,7 +118,7 @@ class Game {
 
     if (this.#user) {
       this.#socket.emit('player-key-up', {
-        gameId: this.#gameState.id,
+        gameId: this.gameState.id,
         userId: this.#user.id,
         y: this.#players[this.#user.id].y,
         key,
@@ -148,14 +158,13 @@ class Game {
     const L4y = My + (CELL_SIZE / 2);
 
     if (this.cells.length === 0) {
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-          const CellX = L3x + (CELL_SIZE * i);
-          const CellY = L1y + (CELL_SIZE * j);
-          this.cells.push([CellX, CellY, () => {
-            console.log({ i, j });
-            this.#players[this.#user!.id].clicked = [i, j];
-          }]);
+      for (let x = 0; x < 3; x++) {
+        for (let y = 0; y < 3; y++) {
+          const CellX = L3x + (CELL_SIZE * x);
+          const CellY = L1y + (CELL_SIZE * y);
+          const xyStr = '' + x + y;
+
+          this.cells.push([CellX, CellY, xyStr]);
         }
       }
     }
@@ -205,11 +214,13 @@ class Game {
   };
 }
 
-type GameState = {
+export type GameState = {
   id: string;
+  selected: string;
   players: Record<string, {
     y: number;
     direction: null | 'up' | 'down';
+    mark: 'x' | 'o';
   }>;
 };
 
@@ -220,8 +231,7 @@ type PlayerState = {
   width: number;
   height: number;
   direction: null | 'up' | 'down';
-
-  clicked: null | [number, number];
+  mark: 'x' | 'o';
 };
 
 type PlayerKeypressData = {
