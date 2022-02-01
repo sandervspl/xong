@@ -50,9 +50,9 @@ const GameLobby: React.VFC<Props> = (props) => {
     });
 
     socket.on('game-playstate-update', (update: PlaystateTypes) => {
-      console.log('playstate', update);
-
-      // setGameState
+      setGameState((draft) => {
+        draft!.playState = update;
+      });
     });
 
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
@@ -95,6 +95,11 @@ const GameLobby: React.VFC<Props> = (props) => {
 
           <div className="relative grid place-items-center w-full h-[600px]">
             {loading && <p className="text-6xl">Loading game...</p>}
+
+            {gameState?.playState === 'waiting_for_players' && (
+              <div className="absolute text-6xl">Waiting for players...</div>
+            )}
+
             {gameRef.current?.cells?.map((cellData, i) => (
               <Cell
                 key={i}
@@ -104,12 +109,16 @@ const GameLobby: React.VFC<Props> = (props) => {
                 isSelected={cellData.cellId === gameState?.selected}
               />
             ))}
+
             <canvas
               id="game"
               className={classNames(
                 'border-primary-900 border-solid border-2',
-                { hidden: loading },
-                { block: !loading },
+                {
+                  hidden: loading,
+                  block: !loading,
+                  'blur-sm': gameState?.playState !== 'playing',
+                },
               )}
               width={`${process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH}px`}
               height={`${process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT}px`}

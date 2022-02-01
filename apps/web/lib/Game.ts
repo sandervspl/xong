@@ -32,7 +32,6 @@ class Game {
   ) {
     this.gameState = gameState;
     this.#canvas = document.getElementById('game') as HTMLCanvasElement;
-    console.log(this.#canvas);
     this.#ctx = this.#canvas.getContext('2d')!;
     this.#socket = socket;
     this.#user = user;
@@ -220,11 +219,15 @@ class Game {
 export type GameState = {
   id: string;
   selected: string;
+  turn: string;
+  playState: 'waiting_for_players' | 'playing' | 'paused' | 'finished';
   players: Record<string, {
+    id: string;
     y: number;
     direction: null | 'up' | 'down';
     mark: 'x' | 'o';
     connected: boolean;
+    socketId: string;
   }>;
 };
 
