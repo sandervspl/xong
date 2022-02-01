@@ -25,14 +25,14 @@ class Game {
   cells: { x: number; y: number; cellId: string }[] = [];
 
   constructor(
-    canvas: HTMLCanvasElement,
     socket: Socket,
     gameState: GameState,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
   ) {
     this.gameState = gameState;
-    this.#canvas = canvas;
+    this.#canvas = document.getElementById('game') as HTMLCanvasElement;
+    console.log(this.#canvas);
     this.#ctx = this.#canvas.getContext('2d')!;
     this.#socket = socket;
     this.#user = user;
