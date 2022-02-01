@@ -10,6 +10,8 @@ import Game from 'lib/Game';
 import useSocketIO from 'hooks/useSocketIO';
 import useLocalStorage from 'hooks/userLocalStorage';
 
+import Cell from './Cell';
+
 
 const GameLobby: React.VFC<Props> = (props) => {
   const socket = useSocketIO();
@@ -45,6 +47,25 @@ const GameLobby: React.VFC<Props> = (props) => {
         setLoading(false);
       });
 
+      socket.on('game-playstate-update', (update: PlaystateTypes) => {
+        console.log('playstate', update);
+      });
+
+      socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
+        if (gameState) {
+          setGameState({
+            ...gameState,
+            players: {
+              ...gameState.players,
+              [update.userId]: {
+                ...gameState.players[update.userId],
+                connected: update.connected,
+              },
+            },
+          });
+        }
+      });
+
       socket.on('player-select-cell', (data: PlayerSelectCellData) => {
         setGameState({
           ...gameState!,
@@ -61,46 +82,35 @@ const GameLobby: React.VFC<Props> = (props) => {
     <div className="text-primary-500">
       <div className="grid place-items-center h-screen w-screen">
         <div className="w-[1200px]">
-          <div className="text-4xl flex justify-between">
-            <span>{plr1?.username} ({gameRef.current?.getPlayer(plr1?._id)?.mark})</span>
-            <span>0 - 0</span>
-            <span>{plr2?.username} ({gameRef.current?.getPlayer(plr2?._id)?.mark})</span>
+          <div className="flex justify-between text-4xl">
+            <span className="flex justify-start items-center flex-1">
+              {plr1?.username} ({gameRef.current?.getPlayer(plr1?._id)?.mark})
+              {plr1 && !gameState?.players[plr1._id!].connected && (
+                <span className="text-primary-100 text-base pl-2">(connecting...)</span>
+              )}
+            </span>
+            <span className="flex justify-center flex-1">
+              0 - 0
+            </span>
+            <span className="flex justify-end items-center flex-1">
+              {plr2 && !gameState?.players[plr2._id!].connected && (
+                <span className="text-primary-100 text-base pl-2">(connecting...)</span>
+              )}
+              {plr2?.username} ({gameRef.current?.getPlayer(plr2?._id)?.mark})
+            </span>
           </div>
 
           <div className="relative grid place-items-center w-full h-[600px]">
             {loading && <p className="text-6xl">Loading game...</p>}
-            {gameRef.current?.cells?.map(([x1, y1, xyStr], i) => {
-              const isSelectedCell = xyStr === gameState?.selected;
-
-              return (
-                <button
-                  key={i}
-                  className={classNames(
-                    'absolute bg-primary-200 border-2 border-solid border-secondary',
-                    {
-                      'opacity-0': !isSelectedCell,
-                      'hover:opacity-50': !isSelectedCell,
-                    },
-                    {
-                      'bg-primary-400': isSelectedCell,
-                    },
-                  )}
-                  style={{
-                    top: y1 + 4 + 'px',
-                    left: x1 + 4 + 'px',
-                    width: Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE) - 4 + 'px',
-                    height: Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE) - 4 + 'px',
-                  }}
-                  onClick={() => {
-                    socket?.emit('player-select-cell', {
-                      gameId: query.gameId,
-                      userId: user?.id,
-                      selected: xyStr,
-                    });
-                  }}
-                />
-              );
-            })}
+            {gameRef.current?.cells?.map((cellData, i) => (
+              <Cell
+                key={i}
+                x={cellData.x}
+                y={cellData.y}
+                cellId={cellData.cellId}
+                isSelected={cellData.cellId === gameState?.selected}
+              />
+            ))}
             <canvas
               id="game"
               ref={canvasRef}
@@ -149,6 +159,13 @@ export type Queries = {
 type PlayerSelectCellData = {
   userId: string;
   selected: string;
+};
+
+type PlaystateTypes = 'waiting_for_players' | 'playing' | 'paused' | 'finished';
+
+type PlayerConnectUpdateData = {
+  userId: string;
+  connected: boolean;
 };
 
 export default GameLobby;

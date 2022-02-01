@@ -22,7 +22,7 @@ class Game {
   #socket: Socket;
   #userIsPlayer: boolean;
   gameState: GameState;
-  cells: [number, number, string][] = [];
+  cells: { x: number; y: number; cellId: string }[] = [];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -162,9 +162,12 @@ class Game {
         for (let y = 0; y < 3; y++) {
           const CellX = L3x + (CELL_SIZE * x);
           const CellY = L1y + (CELL_SIZE * y);
-          const xyStr = '' + x + y;
 
-          this.cells.push([CellX, CellY, xyStr]);
+          this.cells.push({
+            x: CellX,
+            y: CellY,
+            cellId: '' + x + y,
+          });
         }
       }
     }
@@ -221,6 +224,7 @@ export type GameState = {
     y: number;
     direction: null | 'up' | 'down';
     mark: 'x' | 'o';
+    connected: boolean;
   }>;
 };
 
