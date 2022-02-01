@@ -10,6 +10,7 @@ import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
+import isServer from 'utils/isServer';
 
 import Cell from './Cell';
 
@@ -18,7 +19,6 @@ const GameLobby: React.VFC<Props> = (props) => {
   const { getItem } = useLocalStorage();
   const { query } = useRouter();
   const playerIds = props.game!.players.data.map((player) => player!._id);
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const gameRef = React.useRef<Game | null>(null);
   const [loading, setLoading] = React.useState(true);
   const user = getItem('usernames')?.find((val) => val.active);
@@ -26,6 +26,10 @@ const GameLobby: React.VFC<Props> = (props) => {
   const [gameState, setGameState] = useImmer<GameState | null>(null);
 
   React.useEffect(() => {
+    if (isServer) {
+      return;
+    }
+
     socket.emit('user-joined-game', {
       userId: user?.id,
       gameId: (query as Queries).gameId,
@@ -35,14 +39,13 @@ const GameLobby: React.VFC<Props> = (props) => {
       console.info('Connected to game lobby!');
 
       gameRef.current = new Game(
-        canvasRef.current!,
         socket,
         gameState,
         user,
         userIsPlayer,
       );
 
-      setGameState((draft) => draft = gameState);
+      setGameState(gameState);
       setLoading(false);
     });
 
@@ -53,17 +56,13 @@ const GameLobby: React.VFC<Props> = (props) => {
     });
 
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
-      console.log(update, !!gameState);
-      if (gameState) {
-        setGameState((draft) => {
-          draft!.players[update.userId].connected = update.connected;
-        });
-      }
+      setGameState((draft) => {
+        draft!.players[update.userId].connected = update.connected;
+      });
     });
 
     socket.on('player-select-cell', (data: PlayerSelectCellData) => {
       setGameState((draft) => {
-        console.log(draft);
         draft!.selected = data.selected;
       });
     });
@@ -71,8 +70,6 @@ const GameLobby: React.VFC<Props> = (props) => {
 
   const plr1 = props.game?.players.data[0];
   const plr2 = props.game?.players.data[1];
-
-  console.log(gameState);
 
   return (
     <div className="text-primary-500">
@@ -109,7 +106,6 @@ const GameLobby: React.VFC<Props> = (props) => {
             ))}
             <canvas
               id="game"
-              ref={canvasRef}
               className={classNames(
                 'border-primary-900 border-solid border-2',
                 { hidden: loading },
