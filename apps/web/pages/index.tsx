@@ -4,13 +4,12 @@ import { useMutation } from 'react-query';
 import { useRouter } from 'next/router';
 
 import type { GetUserByUsernameQuery } from 'faunadb/generated';
-import { SocketIOContext } from 'lib/SocketIOContext';
 import useLocalStorage from 'hooks/userLocalStorage';
+import socket from 'lib/websocket';
 
 
 export default function Page() {
   const router = useRouter();
-  const io = React.useContext(SocketIOContext);
   const { getItem, setItem, updateItem } = useLocalStorage();
   const userMutation = useMutation((username: string) => {
     setError('');
@@ -64,19 +63,19 @@ export default function Page() {
         });
 
         // Add user to waiting room
-        io?.emit('queue', user._id);
+        socket.emit('queue', user._id);
         setWaitState('waiting');
 
         console.info('Waiting for game...');
 
         // Listen to game creation updates
-        io?.on('game-ready', (data) => {
+        socket.on('game-ready', (data) => {
           console.info('game ready!', data);
           setWaitState('ready');
         });
 
         // Game ready, navigate to game
-        io?.on('game-created', (gameId) => {
+        socket.on('game-created', (gameId) => {
           setWaitState('created');
 
           setTimeout(() => {

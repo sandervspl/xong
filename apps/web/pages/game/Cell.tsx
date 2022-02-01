@@ -2,18 +2,17 @@ import * as React from 'react';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
 
-import useSocketIO from 'hooks/useSocketIO';
+import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
 
 
 const Cell: React.VFC<Props> = (props) => {
   const { query } = useRouter();
-  const socket = useSocketIO();
   const { getItem } = useLocalStorage();
   const user = getItem('usernames')?.find((val) => val.active);
 
   function handleClick() {
-    socket?.emit('player-select-cell', {
+    socket.emit('player-select-cell', {
       gameId: query.gameId,
       userId: user?.id,
       selected: props.cellId,

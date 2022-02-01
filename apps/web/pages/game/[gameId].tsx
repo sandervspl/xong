@@ -1,20 +1,20 @@
 import * as React from 'react';
 import type { GetServerSideProps } from 'next';
-import classNames from 'classnames';
 import { useRouter } from 'next/router';
+import classNames from 'classnames';
+import { useImmer } from 'use-immer';
 
 import type { GetGameByIdQuery } from 'faunadb/generated';
 import type { GameState } from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
-import useSocketIO from 'hooks/useSocketIO';
+import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
 
 import Cell from './Cell';
 
 
 const GameLobby: React.VFC<Props> = (props) => {
-  const socket = useSocketIO();
   const { getItem } = useLocalStorage();
   const { query } = useRouter();
   const playerIds = props.game!.players.data.map((player) => player!._id);
@@ -23,60 +23,56 @@ const GameLobby: React.VFC<Props> = (props) => {
   const [loading, setLoading] = React.useState(true);
   const user = getItem('usernames')?.find((val) => val.active);
   const userIsPlayer = !!user && playerIds.includes(user.id);
-  const [gameState, setGameState] = React.useState<GameState | null>(null);
+  const [gameState, setGameState] = useImmer<GameState | null>(null);
 
   React.useEffect(() => {
-    if (socket) {
-      socket.emit('user-joined-game', {
-        userId: user?.id,
-        gameId: (query as Queries).gameId,
-      });
+    socket.emit('user-joined-game', {
+      userId: user?.id,
+      gameId: (query as Queries).gameId,
+    });
 
-      socket.on('user-joined-game', (gameState: GameState) => {
-        console.info('Connected to game lobby!');
+    socket.on('user-joined-game', (gameState: GameState) => {
+      console.info('Connected to game lobby!');
 
-        gameRef.current = new Game(
-          canvasRef.current!,
-          socket,
-          gameState,
-          user,
-          userIsPlayer,
-        );
+      gameRef.current = new Game(
+        canvasRef.current!,
+        socket,
+        gameState,
+        user,
+        userIsPlayer,
+      );
 
-        setGameState(gameState);
-        setLoading(false);
-      });
+      setGameState((draft) => draft = gameState);
+      setLoading(false);
+    });
 
-      socket.on('game-playstate-update', (update: PlaystateTypes) => {
-        console.log('playstate', update);
-      });
+    socket.on('game-playstate-update', (update: PlaystateTypes) => {
+      console.log('playstate', update);
 
-      socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
-        if (gameState) {
-          setGameState({
-            ...gameState,
-            players: {
-              ...gameState.players,
-              [update.userId]: {
-                ...gameState.players[update.userId],
-                connected: update.connected,
-              },
-            },
-          });
-        }
-      });
+      // setGameState
+    });
 
-      socket.on('player-select-cell', (data: PlayerSelectCellData) => {
-        setGameState({
-          ...gameState!,
-          selected: data.selected,
+    socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
+      console.log(update, !!gameState);
+      if (gameState) {
+        setGameState((draft) => {
+          draft!.players[update.userId].connected = update.connected;
         });
+      }
+    });
+
+    socket.on('player-select-cell', (data: PlayerSelectCellData) => {
+      setGameState((draft) => {
+        console.log(draft);
+        draft!.selected = data.selected;
       });
-    }
-  }, [socket, setGameState, setLoading]);
+    });
+  }, [setGameState, setLoading]);
 
   const plr1 = props.game?.players.data[0];
   const plr2 = props.game?.players.data[1];
+
+  console.log(gameState);
 
   return (
     <div className="text-primary-500">
