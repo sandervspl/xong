@@ -2,6 +2,7 @@ import * as React from 'react';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
 
+import type { GameState } from 'lib/Game';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
 
@@ -10,6 +11,7 @@ const Cell: React.VFC<Props> = (props) => {
   const { query } = useRouter();
   const { getItem } = useLocalStorage();
   const user = getItem('usernames')?.find((val) => val.active);
+  const isSelected = props.gameState.selected === props.cellId;
 
   function handleClick() {
     socket.emit('player-select-cell', {
@@ -22,13 +24,12 @@ const Cell: React.VFC<Props> = (props) => {
   return (
     <button
       className={classNames(
-        'absolute bg-primary-200 border-2 border-solid border-secondary',
+        'absolute border-2 border-solid border-secondary',
         {
-          'opacity-0': !props.isSelected,
-          'hover:opacity-50': !props.isSelected,
-        },
-        {
-          'bg-primary-400': props.isSelected,
+          'opacity-0': !isSelected,
+          'hover:opacity-50': !isSelected,
+          'bg-player-1': props.gameState.turn === props.gameState.players.order[1],
+          'bg-player-2': props.gameState.turn === props.gameState.players.order[2],
         },
       )}
       style={{
@@ -46,7 +47,7 @@ export type Props = {
   x: number;
   y: number;
   cellId: string;
-  isSelected: boolean;
+  gameState: GameState;
 };
 
 export default Cell;

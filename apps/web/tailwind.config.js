@@ -17,6 +17,11 @@ module.exports = {
         },
         secondary: '#1e1035',
         tertiary: '#632650',
+        player: {
+          1: '#a7455a',
+          2: '#f9b357',
+          // 2: '#f9f871',
+        },
       },
     },
   },

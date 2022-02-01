@@ -37,7 +37,7 @@ class Game {
     this.#user = user;
     this.#userIsPlayer = userIsPlayer;
 
-    this.#players = Object.entries(gameState.players).reduce((acc, [plrId, plrState], i) => {
+    this.#players = Object.entries(gameState.players.state).reduce((acc, [plrId, plrState], i) => {
       let x: number;
       if (i === 0) {
         x = FIELD_MARGIN;
@@ -191,15 +191,15 @@ class Game {
   };
 
   #drawPlayers = () => {
+    let i = 1;
     for (const playerId of Object.keys(this.#players)) {
-      this.#ctx.rect(
+      this.#ctx.fillStyle = theme.extend.colors.player[i++];
+      this.#ctx.fillRect(
         this.#players[playerId].x,
         this.#players[playerId].y,
         this.#players[playerId].width,
         this.#players[playerId].height,
       );
-      this.#ctx.fillStyle = theme.extend.colors.primary[600];
-      this.#ctx.fill();
     }
   };
 
@@ -216,19 +216,27 @@ class Game {
   };
 }
 
+type GameId = string;
+type UserId = string;
 export type GameState = {
-  id: string;
+  id: GameId;
   selected: string;
   turn: string;
   playState: 'waiting_for_players' | 'playing' | 'paused' | 'finished';
-  players: Record<string, {
-    id: string;
-    y: number;
-    direction: null | 'up' | 'down';
-    mark: 'x' | 'o';
-    connected: boolean;
-    socketId: string;
-  }>;
+  phase: 'picking' | 'cell_attempt';
+  players: {
+    order: { 1: UserId; 2: UserId; },
+    state: {
+      [UserId: string]: {
+        id: UserId;
+        y: number;
+        direction: null | 'up' | 'down';
+        mark: 'x' | 'o';
+        connected: boolean;
+        socketId: string;
+      }
+    }
+  }
 };
 
 type PlayerState = {

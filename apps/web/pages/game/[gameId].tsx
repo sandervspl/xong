@@ -57,7 +57,7 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
       setGameState((draft) => {
-        draft!.players[update.userId].connected = update.connected;
+        draft!.players.state[update.userId].connected = update.connected;
       });
     });
 
@@ -70,26 +70,36 @@ const GameLobby: React.VFC<Props> = (props) => {
 
   const plr1 = props.game?.players.data[0];
   const plr2 = props.game?.players.data[1];
+  const plr1id = gameState?.players.order[1];
+  const plr2id = gameState?.players.order[2];
 
   return (
     <div className="text-primary-500">
       <div className="grid place-items-center h-screen w-screen">
         <div className="w-[1200px]">
           <div className="flex justify-between text-4xl">
-            <span className="flex justify-start items-center flex-1">
-              {plr1?.username} ({gameRef.current?.getPlayer(plr1?._id)?.mark})
-              {plr1 && !gameState?.players[plr1._id!].connected && (
+            <span
+              className={classNames(
+                'flex justify-start items-center flex-1 text-player-1',
+              )}
+            >
+              {plr1?.username} ({gameRef.current?.getPlayer(plr1id)?.mark})
+              {plr1 && !gameState?.players.state[plr1id!]?.connected && (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               )}
             </span>
             <span className="flex justify-center flex-1">
               0 - 0
             </span>
-            <span className="flex justify-end items-center flex-1">
-              {plr2 && !gameState?.players[plr2._id!].connected && (
+            <span
+              className={classNames(
+                'flex justify-end items-center flex-1 text-player-2',
+              )}
+            >
+              {plr2 && !gameState?.players.state[plr2id!]?.connected && (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               )}
-              {plr2?.username} ({gameRef.current?.getPlayer(plr2?._id)?.mark})
+              {plr2?.username} ({gameRef.current?.getPlayer(plr2id)?.mark})
             </span>
           </div>
 
@@ -100,13 +110,13 @@ const GameLobby: React.VFC<Props> = (props) => {
               <div className="absolute text-6xl">Waiting for players...</div>
             )}
 
-            {gameRef.current?.cells?.map((cellData, i) => (
+            {gameState?.playState === 'playing' && gameRef.current?.cells?.map((cellData, i) => (
               <Cell
                 key={i}
                 x={cellData.x}
                 y={cellData.y}
                 cellId={cellData.cellId}
-                isSelected={cellData.cellId === gameState?.selected}
+                gameState={gameState}
               />
             ))}
 
