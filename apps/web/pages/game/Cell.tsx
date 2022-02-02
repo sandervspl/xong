@@ -11,7 +11,7 @@ const Cell: React.VFC<Props> = (props) => {
   const { query } = useRouter();
   const { getItem } = useLocalStorage();
   const user = getItem('usernames')?.find((val) => val.active);
-  const isSelected = props.gameState.selected === props.cellId;
+  const isSelected = props.gameState?.selected === props.cellId;
 
   function handleClick() {
     socket.emit('player-select-cell', {
@@ -28,8 +28,8 @@ const Cell: React.VFC<Props> = (props) => {
         {
           'opacity-0': !isSelected,
           'hover:opacity-50': !isSelected,
-          'bg-player-1': props.gameState.turn === props.gameState.players[1],
-          'bg-player-2': props.gameState.turn === props.gameState.players[2],
+          'bg-player-1': props.gameState?.turn === props.gameState?.players[1],
+          'bg-player-2': props.gameState?.turn === props.gameState?.players[2],
         },
       )}
       style={{
@@ -47,7 +47,7 @@ export type Props = {
   x: number;
   y: number;
   cellId: string;
-  gameState: GameState;
+  gameState?: GameState;
 };
 
 export default Cell;
