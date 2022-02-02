@@ -12,9 +12,9 @@ const FIELD_MARGIN = Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
 const FIELD_WIDTH = Number(process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH);
 const FIELD_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT);
 const XO_SQUARE_SIZE = Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE);
-const PADDLE_VELOCITY = Number(process.env.NEXT_PUBLIC_GAME_VELOCITY);
-const BALL_SIZE = 10 || Number(process.env.NEXT_PUBLIC_GAME_BALL_SIZE);
-const BALL_SPEED = 7;
+const PADDLE_SPEED = Number(process.env.NEXT_PUBLIC_GAME_PADDLE_SPEED);
+const BALL_SIZE = Number(process.env.NEXT_PUBLIC_GAME_BALL_SIZE);
+const BALL_SPEED = Number(process.env.NEXT_PUBLIC_GAME_BALL_SPEED);
 
 class Game {
   #canvas: HTMLCanvasElement;
@@ -81,8 +81,8 @@ class Game {
       if (data.userId !== this.#user?.id) {
         this.#players[data.userId].direction = data.direction;
         this.#players[data.userId].speed.y = data.direction === 'down'
-          ? PADDLE_VELOCITY
-          : -PADDLE_VELOCITY;
+          ? PADDLE_SPEED
+          : -PADDLE_SPEED;
       }
     });
 
@@ -94,8 +94,8 @@ class Game {
 
         if (data.direction != null) {
           this.#players[data.userId].speed.y = data.direction === 'down'
-            ? PADDLE_VELOCITY
-            : -PADDLE_VELOCITY;
+            ? PADDLE_SPEED
+            : -PADDLE_SPEED;
         }
       }
     });
@@ -159,11 +159,11 @@ class Game {
 
     if (lastInput === 'w' || lastInput === 'arrowup') {
       direction = 'up';
-      velocity = -PADDLE_VELOCITY;
+      velocity = -PADDLE_SPEED;
     }
     else if (lastInput === 's' || lastInput === 'arrowdown') {
       direction = 'down';
-      velocity = PADDLE_VELOCITY;
+      velocity = PADDLE_SPEED;
     }
 
     this.#players[this.#user.id].direction = direction;
