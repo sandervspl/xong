@@ -19,7 +19,7 @@ class Game {
   #ctx: CanvasRenderingContext2D;
   #players: Record<string, ClientPlayerState>;
   #user?: StoredUser;
-  #keysPressed: Record<string, boolean> = {};
+  #keysPressed: Set<string> = new Set<string>();
   #socket: Socket;
   gameState: GameStateServerGame;
   cells: { x: number; y: number; cellId: string }[] = [];
@@ -65,12 +65,17 @@ class Game {
     }
 
     socket.on('player-key-down', (data: PlayerKeypressData) => {
-      this.#players[data.userId].direction = data.direction;
+      if (data.userId !== this.#user?.id) {
+        this.#players[data.userId].direction = data.direction;
+      }
     });
 
     socket.on('player-key-up', (data: PlayerKeypressUpData) => {
-      this.#players[data.userId].direction = data.direction;
       this.#players[data.userId].y = data.y;
+
+      if (data.userId !== this.#user?.id) {
+        this.#players[data.userId].direction = data.direction;
+      }
     });
 
     this.#drawXOField();
@@ -94,35 +99,60 @@ class Game {
     return this.#players[userId];
   };
 
-  #onKeyDown = (e: KeyboardEvent) => {
-    const key = e.key.toLowerCase();
-
-    if (this.#keysPressed[key]) {
+  #updateDirection = () => {
+    if (!this.#user) {
       return;
     }
 
-    this.#keysPressed[key] = true;
+    let direction: Direction = null;
+    const keysArr = [...this.#keysPressed];
+    const lastInput = keysArr[keysArr.length - 1];
+
+    if (lastInput === 'w' || lastInput === 'arrowup') {
+      direction = 'up';
+    }
+    else if (lastInput === 's' || lastInput === 'arrowdown') {
+      direction = 'down';
+    }
+
+    this.#players[this.#user.id].direction = direction;
+
+    return direction;
+  };
+
+  #onKeyDown = (e: KeyboardEvent) => {
+    const key = e.key.toLowerCase();
+
+    if (this.#keysPressed.has(key)) {
+      return;
+    }
+
+    this.#keysPressed.add(key);
 
     if (this.#user) {
-      // console.log('emit down');
+      const nextDirection = this.#updateDirection();
+
       this.#socket.emit('player-key-down', {
         gameId: this.gameState.id,
         userId: this.#user.id,
-        key,
+        direction: nextDirection,
       });
     }
   };
 
   #onKeyUp = (e: KeyboardEvent) => {
     const key = e.key.toLowerCase();
-    this.#keysPressed[key] = false;
+
+    this.#keysPressed.delete(key);
 
     if (this.#user) {
+      const nextDirection = this.#updateDirection();
+
       this.#socket.emit('player-key-up', {
         gameId: this.gameState.id,
         userId: this.#user.id,
         y: this.#players[this.#user.id].y,
-        key,
+        direction: nextDirection,
       });
     }
   };
