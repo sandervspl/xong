@@ -2,7 +2,7 @@ import * as React from 'react';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
 
-import type { GameState } from 'lib/Game';
+import type { GameState } from 'pages/game/[gameId]';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
 

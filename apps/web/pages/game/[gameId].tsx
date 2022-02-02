@@ -4,28 +4,36 @@ import { useRouter } from 'next/router';
 import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 
-import type { GetGameByIdQuery } from 'faunadb/generated';
-import type { GameState, PlaystateTypes, ServerPlayerState, UserId } from 'lib/Game';
+import type { GameId, PlaystateTypes, UserId } from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
 import isServer from 'utils/isServer';
 
+import axios from 'axios';
 import Cell from './Cell';
 
 
 const GameLobby: React.VFC<Props> = (props) => {
   const { getItem } = useLocalStorage();
   const { query } = useRouter();
-  const playerIds = props.game!.players.data.map((player) => player!._id);
   const gameRef = React.useRef<Game | null>(null);
   const [loading, setLoading] = React.useState(true);
   const user = getItem('usernames')?.find((val) => val.active);
-  const userIsPlayer = !!user && playerIds.includes(user.id);
-  const [gameState, setGameState] = useImmer<GameState | null>(null);
-  const [playersState, setPlayersState] = useImmer<Record<UserId, ServerPlayerState> | null>(null);
+  const userIsPlayer = !!user && Object.values(props.game.players).includes(user.id);
+  const [gameState, setGameState] = useImmer<GameState>(props.game);
+  const [playersState, setPlayersState] = useImmer<PlayersState>(
+    props.players.reduce((acc, plr) => {
+      acc[plr.id] = plr;
+      return acc;
+    }, {} as PlayersState),
+  );
   const [countdown, setCountdown] = React.useState(3);
+
+  // Never use these for changing values
+  const p1_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[1]));
+  const p2_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[2]));
 
   React.useEffect(() => {
     if (isServer) {
@@ -56,7 +64,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     socket.on('user-left-game', (data: UserLeftData) => {
       if (data.isPlayer) {
         setGameState((draft) => {
-          draft!.playState = 'finished';
+          draft.playState = 'finished';
         });
       }
     });
@@ -67,13 +75,13 @@ const GameLobby: React.VFC<Props> = (props) => {
       }
 
       setGameState((draft) => {
-        draft!.playState = update;
+        draft.playState = update;
       });
     });
 
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
       setPlayersState((draft) => {
-        draft![update.userId].connected = update.connected;
+        draft[update.userId].connected = update.connected;
       });
     });
 
@@ -115,20 +123,6 @@ const GameLobby: React.VFC<Props> = (props) => {
     }, 1000);
   }
 
-  const plr1id = gameState?.players[1];
-  const plr2id = gameState?.players[2];
-
-  const players = gameState && playersState && {
-    1: {
-      ...props.game?.players.data.find((user) => user?._id === plr1id),
-      ...playersState?.[plr1id!],
-    },
-    2: {
-      ...props.game?.players.data.find((user) => user?._id === plr2id),
-      ...playersState?.[plr2id!],
-    },
-  };
-
   return (
     <div className="text-primary-500">
       <div className="grid place-items-center h-screen w-screen">
@@ -139,8 +133,8 @@ const GameLobby: React.VFC<Props> = (props) => {
                 'flex justify-start items-center flex-1 text-player-1',
               )}
             >
-              {players?.[1].username} ({players?.[1].mark})
-              {!players?.[1].connected && (
+              {p1_STATIC.current?.username} ({p1_STATIC.current?.mark})
+              {!playersState[p1_STATIC.current!.id]?.connected && (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               )}
             </span>
@@ -152,15 +146,15 @@ const GameLobby: React.VFC<Props> = (props) => {
                 'flex justify-end items-center flex-1 text-player-2',
               )}
             >
-              {!players?.[2].connected && (
+              {!playersState[p2_STATIC.current!.id]?.connected && (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               )}
-              {players?.[2].username} ({players?.[2].mark})
+              {p2_STATIC.current?.username} ({p2_STATIC.current?.mark})
             </span>
           </div>
 
           <div className="relative grid place-items-center w-full h-[600px]">
-            {gameState?.phase === 'xo' && gameState?.turn === user?.id && (
+            {!loading && gameState?.phase === 'xo' && gameState?.turn === user?.id && (
               <p className="absolute self-start text-5xl mt-2">It{'\''}s your turn to pick!</p>
             )}
 
@@ -207,10 +201,16 @@ const GameLobby: React.VFC<Props> = (props) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const game = await sdk.GetGameById({ id: ctx.query!.gameId as string });
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  /** @TODO Move this logic */
+  const host = process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : 'https://xong-game-server.herokuapp.com';
 
-  if (!game.findGameByID) {
+  const game = await axios.get<GameStateResponse>(`${host}/game/${ctx.query.gameId}`);
+  const gameDB = await sdk.GetGameById({ id: ctx.query.gameId as string });
+
+  if (!game || !gameDB.findGameByID || game.data.players.length === 0) {
     return {
       redirect: {
         destination: '/',
@@ -219,20 +219,33 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     };
   }
 
+  const players: unknown[] = [];
+  for (const plr of gameDB.findGameByID.players.data) {
+    const plrState = game.data.players.find((val) => val.id === plr?._id);
+    (plrState as any).username = plr?.username;
+
+    players.push(plrState);
+  }
+
   return {
     props: {
-      game: game.findGameByID,
+      game: game.data.game,
+      players: game.data.players,
     },
   };
 };
 
-export type Props = {
-  game: GetGameByIdQuery['findGameByID'] | null;
+type Props = {
+  game: GameStateResponse['game'];
+  players: GameStateResponse['players'];
 };
 
-export type Queries = {
+type Queries = {
   gameId: string;
 };
+
+export type GameState = GameStateResponse['game'];
+export type PlayersState = Record<UserId, Omit<GameStateResponse['players'][number], 'username'>>;
 
 type PlayerSelectCellData = {
   userId: string;
@@ -246,13 +259,37 @@ type PlayerConnectUpdateData = {
 
 type UserJoinedData = {
   game: GameState;
-  players: Record<UserId, ServerPlayerState>;
+  players: PlayersState;
 };
 
 type UserLeftData = {
   userId: UserId;
   isPlayer: boolean;
   reason: string | null;
+};
+
+export type GameStateResponse = {
+  game: {
+    id: GameId;
+    selected: string;
+    turn: string;
+    playState: string;
+    phase: string;
+    players:  {
+      1: UserId;
+      2: UserId;
+    };
+  };
+  players: {
+    id: UserId;
+    gameId: GameId;
+    y: number;
+    direction?: any;
+    connected: boolean;
+    socketId: string;
+    mark: string;
+    username: string;
+  }[];
 };
 
 export default GameLobby;

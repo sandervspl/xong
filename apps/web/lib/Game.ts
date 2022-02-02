@@ -1,6 +1,7 @@
 import type { Socket } from 'socket.io-client';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
+import type { PlayersState, GameState } from 'pages/game/[gameId]';
 
 import { theme } from '../tailwind.config.js';
 
@@ -27,7 +28,7 @@ class Game {
   constructor(
     socket: Socket,
     gameState: GameState,
-    playersState: Record<UserId, ServerPlayerState>,
+    playersState: PlayersState,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
   ) {
@@ -224,15 +225,6 @@ export type UserId = string;
 export type PlaystateTypes = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
 type Direction = 'up' | 'down' | null;
 type Mark = 'x' | 'o';
-
-export type GameState = {
-  id: GameId;
-  selected: string;
-  turn: string;
-  playState: PlaystateTypes;
-  phase: 'xo' | 'pong';
-  players: { 1: UserId; 2: UserId };
-};
 
 export type ServerPlayerState = {
   id: UserId;
