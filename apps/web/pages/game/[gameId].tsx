@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 import axios from 'axios';
 
-import type { CellId, GameId, Mark, PhaseTypes, PlaystateTypes, UserId } from 'lib/Game';
+import type { BallState, CellId, GameId, Mark, PhaseTypes, PlaystateTypes, UserId } from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
@@ -80,17 +80,26 @@ const GameLobby: React.VFC<Props> = (props) => {
     socket.on('game-playstate-update', (update: PlaystateTypes) => {
       if (update === 'starting') {
         doCountdown();
+        gameRef.current!.initBall();
+      }
+
+      if (update === 'playing') {
+        gameRef.current!.launchBall();
       }
 
       setGameState((draft) => {
         draft.playState = update;
       });
+
+      gameRef.current!.gameState.playState = update;
     });
 
     socket.on('game-phase-update', (update: PhaseTypes) => {
       setGameState((draft) => {
         draft.phase = update;
       });
+
+      gameRef.current!.gameState.phase = update;
     });
 
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
@@ -319,7 +328,7 @@ export type GameStateServerPlayer = {
   direction: null | 'up' | 'down';
   connected: boolean;
   socketId: string;
-  mark: string;
+  mark: Mark;
 };
 
 export type GameStateServerGame = {
@@ -327,8 +336,9 @@ export type GameStateServerGame = {
   turn: string;
   playState: PlaystateTypes;
   phase: PhaseTypes;
-  players:  { 1: UserId; 2: UserId };
+  players: { 1: UserId; 2: UserId };
   xoState: [CellId, XoState][];
+  ball: BallState;
 };
 
 export type GameStateResponse = {

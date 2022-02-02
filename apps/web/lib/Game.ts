@@ -12,7 +12,9 @@ const FIELD_MARGIN = Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
 const FIELD_WIDTH = Number(process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH);
 const FIELD_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT);
 const XO_SQUARE_SIZE = Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE);
-const VELOCITY = Number(process.env.NEXT_PUBLIC_GAME_VELOCITY);
+const PADDLE_VELOCITY = Number(process.env.NEXT_PUBLIC_GAME_VELOCITY);
+const BALL_SIZE = 10 || Number(process.env.NEXT_PUBLIC_GAME_BALL_SIZE);
+const BALL_SPEED = 7;
 
 class Game {
   #canvas: HTMLCanvasElement;
@@ -21,6 +23,7 @@ class Game {
   #user?: StoredUser;
   #keysPressed: Set<string> = new Set<string>();
   #socket: Socket;
+  #ball: BallState;
   gameState: GameStateServerGame;
   cells: { x: number; y: number; cellId: string }[] = [];
 
@@ -37,6 +40,13 @@ class Game {
     this.#socket = socket;
     this.#user = user;
 
+    this.#ball = gameState.playState !== 'playing'
+      ? { ...gameState.ball }
+      : {
+        position: { x: -100, y: -100 },
+        speed: { x: 0, y: 0 },
+      };
+
     this.#players = Object.entries(playersState).reduce((acc, [plrId, plrState], i) => {
       let x: number;
       if (i === 0) {
@@ -45,7 +55,7 @@ class Game {
         x = FIELD_WIDTH - PLR_WIDTH - FIELD_MARGIN;
       }
 
-      acc[plrId] = {
+      const state: ClientPlayerState = {
         id: plrId,
         x,
         y: plrState.y,
@@ -53,7 +63,10 @@ class Game {
         width: PLR_WIDTH,
         height: PLR_HEIGHT,
         mark: plrState.mark,
+        speed: { x: 0, y: 0 },
       };
+
+      acc[plrId] = state;
 
       return acc;
     }, {});
@@ -67,6 +80,9 @@ class Game {
     socket.on('player-key-down', (data: PlayerKeypressData) => {
       if (data.userId !== this.#user?.id) {
         this.#players[data.userId].direction = data.direction;
+        this.#players[data.userId].speed.y = data.direction === 'down'
+          ? PADDLE_VELOCITY
+          : -PADDLE_VELOCITY;
       }
     });
 
@@ -75,7 +91,17 @@ class Game {
 
       if (data.userId !== this.#user?.id) {
         this.#players[data.userId].direction = data.direction;
+
+        if (data.direction != null) {
+          this.#players[data.userId].speed.y = data.direction === 'down'
+            ? PADDLE_VELOCITY
+            : -PADDLE_VELOCITY;
+        }
       }
+    });
+
+    socket.on('ball-hit-object', (data: PlayerHitCellData) => {
+      this.#ball = data.ball;
     });
 
     this.#drawXOField();
@@ -99,23 +125,49 @@ class Game {
     return this.#players[userId];
   };
 
+  initBall = () => {
+    if (this.#ball.position.x > 0) {
+      return;
+    }
+
+    this.#ball.position = {
+      x: FIELD_WIDTH / 2 - BALL_SIZE / 2,
+      y: FIELD_HEIGHT / 2 - BALL_SIZE / 2,
+    };
+  };
+
+  launchBall = () => {
+    if (this.#ball.speed.x > 0) {
+      return;
+    }
+
+    this.#ball.speed = {
+      x: BALL_SPEED,
+      y: 0,
+    };
+  };
+
   #updateDirection = () => {
     if (!this.#user) {
       return;
     }
 
     let direction: Direction = null;
+    let velocity = 0;
     const keysArr = [...this.#keysPressed];
     const lastInput = keysArr[keysArr.length - 1];
 
     if (lastInput === 'w' || lastInput === 'arrowup') {
       direction = 'up';
+      velocity = -PADDLE_VELOCITY;
     }
     else if (lastInput === 's' || lastInput === 'arrowdown') {
       direction = 'down';
+      velocity = PADDLE_VELOCITY;
     }
 
     this.#players[this.#user.id].direction = direction;
+    this.#players[this.#user.id].speed.y = velocity;
 
     return direction;
   };
@@ -158,20 +210,144 @@ class Game {
   };
 
   #updatePositions = () => {
+    if (this.gameState.playState !== 'playing') {
+      return;
+    }
+
+    // PLAYERS
     for (const playerId of Object.keys(this.#players)) {
       let next = this.#players[playerId].y;
 
-      if (this.#players[playerId].direction === 'up') {
-        next = this.#players[playerId].y - VELOCITY;
-      }
-
-      if (this.#players[playerId].direction === 'down') {
-        next = this.#players[playerId].y + VELOCITY;
+      if (this.#players[playerId].direction != null) {
+        next = this.#players[playerId].y + this.#players[playerId].speed.y;
       }
 
       if (next >= 0 && next <= FIELD_HEIGHT - PLR_HEIGHT) {
         this.#players[playerId].y = next;
       }
+    }
+
+    // BALL
+    if (this.#ball.speed.x === 0 && this.#ball.speed.y === 0) {
+      return;
+    }
+
+    let changed = false;
+    this.#ball.position.x += this.#ball.speed.x;
+    this.#ball.position.y += this.#ball.speed.y;
+
+    const { position, speed } = this.#ball;
+    const HALF_BALL_SIZE = BALL_SIZE / 2;
+    const topX = position.x - HALF_BALL_SIZE;
+    const topY = this.#ball.position.y - HALF_BALL_SIZE;
+    const bottomX = position.x + HALF_BALL_SIZE;
+    const bottomY = this.#ball.position.y + HALF_BALL_SIZE;
+
+    // Left / right boundaries
+    if (position.x - HALF_BALL_SIZE < 0) {
+      this.#ball.position.x = HALF_BALL_SIZE;
+      this.#ball.speed.x = -speed.x;
+      changed = true;
+    } else if (position.x + HALF_BALL_SIZE > FIELD_WIDTH) {
+      this.#ball.position.x = FIELD_WIDTH - HALF_BALL_SIZE;
+      this.#ball.speed.x = -speed.x;
+      changed = true;
+    }
+
+    // Top / bottom boundaries
+    if (position.y - HALF_BALL_SIZE < 0) {
+      this.#ball.position.y = HALF_BALL_SIZE;
+      this.#ball.speed.y = -speed.y;
+      changed = true;
+    } else if (position.y + HALF_BALL_SIZE > FIELD_HEIGHT) {
+      this.#ball.position.y = FIELD_HEIGHT - HALF_BALL_SIZE;
+      this.#ball.speed.y = -speed.y;
+      changed = true;
+    }
+
+    // Reset code???
+    // if (this.#ball.position.y < 0 || this.#ball.position.y > FIELD_WIDTH) {
+    //   this.#ball.speed.x = BALL_SPEED;
+    //   this.#ball.speed.y = 0;
+    //   this.#ball.position.x = FIELD_WIDTH / 2;
+    //   this.#ball.position.y = FIELD_HEIGHT / 2;
+    // }
+
+    const paddle1 = this.#players[this.gameState.players[1]];
+    const paddle2 = this.#players[this.gameState.players[2]];
+
+    if (bottomX < PLR_WIDTH * 2) {
+      // Check for hit player 1
+      const paddleBottom = paddle1.y + paddle1.height;
+      const paddleTop = paddle1.y;
+      const paddleRight = paddle1.x + paddle1.width;
+      const paddleLeft = paddle1.x;
+      const yCheck1 = topY < paddleBottom;
+      const yCheck2 = bottomY > paddleTop;
+      const xCheck1 = topX < paddleRight;
+      const xCheck2 = bottomX > paddleLeft;
+
+      if (yCheck1 && yCheck2 && xCheck1 && xCheck2) {
+        this.#ball.speed.x = BALL_SPEED;
+        this.#ball.speed.y += (paddle1.speed.y / 2);
+        this.#ball.position.x += this.#ball.speed.x;
+        changed = true;
+      }
+      // else {
+      //   if (xCheck1 && xCheck2) {
+      //     // bottom hit
+      //     if (topY < paddleBottom && paddleTop < topY) {
+      //       this.#ball.speed.y = -this.#ball.speed.y;
+      //       this.#ball.position.y += Math.abs(this.#ball.speed.y);
+      //       console.log('bot hit');
+      //     }
+      //     // top hit
+      //     else if (bottomY > paddleTop && paddleBottom > topY) {
+      //       this.#ball.speed.y = -this.#ball.speed.y;
+      //       this.#ball.position.y -= Math.abs(this.#ball.speed.y);
+      //       console.log('top hit');
+      //     }
+      //   }
+      // }
+    } else if (bottomX > FIELD_WIDTH - PLR_WIDTH * 2) {
+      const paddleBottom = paddle2.y + paddle2.height;
+      const paddleTop = paddle2.y;
+      const paddleRight = paddle2.x + paddle2.width;
+      const paddleLeft = paddle2.x;
+      const yCheck1 = topY < paddleBottom;
+      const yCheck2 = bottomY > paddleTop;
+      const xCheck1 = topX < paddleRight;
+      const xCheck2 = bottomX > paddleLeft;
+
+      if (yCheck1 && yCheck2 && xCheck1 && xCheck2) {
+        this.#ball.speed.x = -BALL_SPEED;
+        this.#ball.speed.y += (paddle2.speed.y / 2);
+        this.#ball.position.x += this.#ball.speed.x;
+        changed = true;
+      }
+      // else {
+      //   if (xCheck1 && xCheck2) {
+      //     // bottom hit
+      //     if (topY < paddleBottom && paddleTop < topY) {
+      //       this.#ball.speed.y = -this.#ball.speed.y;
+      //       this.#ball.position.y += Math.abs(this.#ball.speed.y);
+      //       console.log('bot hit 2');
+      //     }
+      //     // top hit
+      //     else if (bottomY > paddleTop && paddleBottom > topY) {
+      //       this.#ball.speed.y = -this.#ball.speed.y;
+      //       this.#ball.position.y -= Math.abs(this.#ball.speed.y);
+      //       console.log('top hit 2');
+      //     }
+      //   }
+      // }
+    }
+
+    if (changed) {
+      this.#socket.emit('ball-hit-object', {
+        gameId: this.gameState.id,
+        ball: this.#ball,
+      });
     }
   };
 
@@ -235,10 +411,25 @@ class Game {
     }
   };
 
+  #drawBall = () => {
+    this.#ctx.beginPath();
+    this.#ctx.fillStyle = theme.extend.colors.primary[100];
+    this.#ctx.arc(
+      this.#ball.position.x,
+      this.#ball.position.y,
+      BALL_SIZE,
+      0,
+      2 * Math.PI,
+      false,
+    );
+    this.#ctx.fill();
+  };
+
   #draw = () => {
     this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
     this.#drawXOField();
     this.#drawPlayers();
+    this.#drawBall();
   };
 
   #tick = () => {
@@ -273,6 +464,7 @@ type ClientPlayerState = {
   height: number;
   direction: Direction;
   mark: Mark;
+  speed: { x: number; y: number };
 };
 
 type PlayerKeypressData = {
@@ -282,6 +474,15 @@ type PlayerKeypressData = {
 
 type PlayerKeypressUpData = PlayerKeypressData & {
   y: number;
+};
+
+type PlayerHitCellData = {
+  ball: BallState;
+};
+
+export type BallState = {
+  position: { x: number; y: number };
+  speed: { x: number; y: number };
 };
 
 export default Game;
