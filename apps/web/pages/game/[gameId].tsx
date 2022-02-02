@@ -111,6 +111,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     socket.on('player-select-cell', (data: PlayerSelectCellData) => {
       setGameState((draft) => {
         draft.xoState = new Map(data.xoState);
+        draft.phase = data.phase;
       });
     });
 
@@ -152,6 +153,11 @@ const GameLobby: React.VFC<Props> = (props) => {
     setTimeout(() => {
       setCountdown((n) => n - 1);
     }, 1000);
+  }
+
+  /** @TODO REMOVE THIS */
+  if (process.env.NODE_ENV === 'development') {
+    if (!isServer) (window as any).gs = gameState;
   }
 
   return (
@@ -290,6 +296,7 @@ type SerializedXoState = [CellId, XoState][];
 
 type PlayerSelectCellData = {
   xoState: SerializedXoState;
+  phase: PhaseTypes;
 };
 
 type PlayerHitCellData = {

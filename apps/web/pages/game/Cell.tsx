@@ -26,13 +26,12 @@ const Cell: React.VFC<Props> = (props) => {
         cellId: props.cellId,
       });
     }
-    else if (process.env.NODE_ENV === 'development') {
-      socket.emit('player-hit-cell', {
-        gameId: query.gameId,
-        userId: user?.id,
-        cellId: props.cellId,
-      });
-    }
+
+    // socket.emit('player-hit-cell', {
+    //   gameId: query.gameId,
+    //   userId: user?.id,
+    //   cellId: props.cellId,
+    // });
   }
 
   return (
@@ -49,9 +48,7 @@ const Cell: React.VFC<Props> = (props) => {
           'bg-player-2': cellData?.state === 'captured'
             ? cellData?.user === props.gameState?.players[2]
             : props.gameState?.turn === props.gameState?.players[2],
-          'pointer-events-none': process.env.NODE_ENV === 'development'
-            ? !isUserTurn
-            : !isPickPhase,
+          'pointer-events-none': !isPickPhase,
         },
       )}
       style={{
