@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 
 import type { GetGameByIdQuery } from 'faunadb/generated';
-import type { GameState, ServerPlayerState, UserId } from 'lib/Game';
+import type { GameState, PlaystateTypes, ServerPlayerState, UserId } from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
@@ -25,6 +25,7 @@ const GameLobby: React.VFC<Props> = (props) => {
   const userIsPlayer = !!user && playerIds.includes(user.id);
   const [gameState, setGameState] = useImmer<GameState | null>(null);
   const [playersState, setPlayersState] = useImmer<Record<UserId, ServerPlayerState> | null>(null);
+  const [countdown, setCountdown] = React.useState(3);
 
   React.useEffect(() => {
     if (isServer) {
@@ -61,6 +62,10 @@ const GameLobby: React.VFC<Props> = (props) => {
     });
 
     socket.on('game-playstate-update', (update: PlaystateTypes) => {
+      if (update === 'starting') {
+        doCountdown();
+      }
+
       setGameState((draft) => {
         draft!.playState = update;
       });
@@ -87,6 +92,24 @@ const GameLobby: React.VFC<Props> = (props) => {
       });
     };
   }, [setGameState, setLoading]);
+
+  React.useEffect(() => {
+    if (countdown === 0) {
+      socket.emit('game-playstate-update', {
+        gameId: (query as Queries).gameId,
+        playState: 'playing',
+      });
+    }
+    else if (countdown < 3) {
+      doCountdown();
+    }
+  }, [countdown]);
+
+  function doCountdown() {
+    setTimeout(() => {
+      setCountdown((n) => n - 1);
+    }, 1000);
+  }
 
   const plr1id = gameState?.players[1];
   const plr2id = gameState?.players[2];
@@ -137,6 +160,9 @@ const GameLobby: React.VFC<Props> = (props) => {
 
             {gameState?.playState === 'waiting_for_players' && (
               <div className="absolute text-6xl">Waiting for players...</div>
+            )}
+            {gameState?.playState === 'starting' && (
+              <div className="absolute text-6xl">{countdown}</div>
             )}
             {/** @TODO add check */}
             {gameState?.playState === 'finished' && (
@@ -204,8 +230,6 @@ type PlayerSelectCellData = {
   userId: string;
   selected: string;
 };
-
-type PlaystateTypes = 'waiting_for_players' | 'playing' | 'paused' | 'finished';
 
 type PlayerConnectUpdateData = {
   userId: string;

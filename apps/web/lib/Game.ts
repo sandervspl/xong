@@ -221,6 +221,7 @@ class Game {
 
 export type GameId = string;
 export type UserId = string;
+export type PlaystateTypes = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
 type Direction = 'up' | 'down' | null;
 type Mark = 'x' | 'o';
 
@@ -228,7 +229,7 @@ export type GameState = {
   id: GameId;
   selected: string;
   turn: string;
-  playState: 'waiting_for_players' | 'playing' | 'paused' | 'finished';
+  playState: PlaystateTypes;
   phase: 'picking' | 'cell_attempt';
   players: { 1: UserId; 2: UserId };
 };
