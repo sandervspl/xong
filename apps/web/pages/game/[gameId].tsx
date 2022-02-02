@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 
 import type { GetGameByIdQuery } from 'faunadb/generated';
-import type { GameState } from 'lib/Game';
+import type { GameState, ServerPlayerState, UserId } from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
@@ -24,6 +24,7 @@ const GameLobby: React.VFC<Props> = (props) => {
   const user = getItem('usernames')?.find((val) => val.active);
   const userIsPlayer = !!user && playerIds.includes(user.id);
   const [gameState, setGameState] = useImmer<GameState | null>(null);
+  const [playersState, setPlayersState] = useImmer<Record<UserId, ServerPlayerState> | null>(null);
 
   React.useEffect(() => {
     if (isServer) {
@@ -35,17 +36,19 @@ const GameLobby: React.VFC<Props> = (props) => {
       gameId: (query as Queries).gameId,
     });
 
-    socket.on('user-joined-game', (gameState: GameState) => {
+    socket.on('user-joined-game', (data: UserJoinedData) => {
       console.info('Connected to game lobby!');
 
       gameRef.current = new Game(
         socket,
-        gameState,
+        data.game,
+        data.players,
         user,
         userIsPlayer,
       );
 
-      setGameState(gameState);
+      setGameState(data.game);
+      setPlayersState(data.players);
       setLoading(false);
     });
 
@@ -56,8 +59,8 @@ const GameLobby: React.VFC<Props> = (props) => {
     });
 
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
-      setGameState((draft) => {
-        draft!.players.state[update.userId].connected = update.connected;
+      setPlayersState((draft) => {
+        draft![update.userId].connected = update.connected;
       });
     });
 
@@ -68,10 +71,19 @@ const GameLobby: React.VFC<Props> = (props) => {
     });
   }, [setGameState, setLoading]);
 
-  const plr1 = props.game?.players.data[0];
-  const plr2 = props.game?.players.data[1];
-  const plr1id = gameState?.players.order[1];
-  const plr2id = gameState?.players.order[2];
+  const plr1id = gameState?.players[1];
+  const plr2id = gameState?.players[2];
+
+  const players = gameState && playersState && {
+    1: {
+      ...props.game?.players.data.find((user) => user?._id === plr1id),
+      ...playersState?.[plr1id!],
+    },
+    2: {
+      ...props.game?.players.data.find((user) => user?._id === plr2id),
+      ...playersState?.[plr2id!],
+    },
+  };
 
   return (
     <div className="text-primary-500">
@@ -83,8 +95,8 @@ const GameLobby: React.VFC<Props> = (props) => {
                 'flex justify-start items-center flex-1 text-player-1',
               )}
             >
-              {plr1?.username} ({gameRef.current?.getPlayer(plr1id)?.mark})
-              {plr1 && !gameState?.players.state[plr1id!]?.connected && (
+              {players?.[1].username} ({players?.[1].mark})
+              {!players?.[1].connected && (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               )}
             </span>
@@ -96,10 +108,10 @@ const GameLobby: React.VFC<Props> = (props) => {
                 'flex justify-end items-center flex-1 text-player-2',
               )}
             >
-              {plr2 && !gameState?.players.state[plr2id!]?.connected && (
+              {!players?.[2].connected && (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               )}
-              {plr2?.username} ({gameRef.current?.getPlayer(plr2id)?.mark})
+              {players?.[2].username} ({players?.[2].mark})
             </span>
           </div>
 
@@ -177,6 +189,11 @@ type PlaystateTypes = 'waiting_for_players' | 'playing' | 'paused' | 'finished';
 type PlayerConnectUpdateData = {
   userId: string;
   connected: boolean;
+};
+
+type UserJoinedData = {
+  game: GameState;
+  players: Record<UserId, ServerPlayerState>;
 };
 
 export default GameLobby;

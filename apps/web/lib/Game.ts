@@ -16,7 +16,7 @@ const VELOCITY = Number(process.env.NEXT_PUBLIC_GAME_VELOCITY);
 class Game {
   #canvas: HTMLCanvasElement;
   #ctx: CanvasRenderingContext2D;
-  #players: Record<string, PlayerState>;
+  #players: Record<string, ClientPlayerState>;
   #user?: StoredUser;
   #keysPressed: Record<string, boolean> = {};
   #socket: Socket;
@@ -27,6 +27,7 @@ class Game {
   constructor(
     socket: Socket,
     gameState: GameState,
+    playersState: Record<UserId, ServerPlayerState>,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
   ) {
@@ -37,7 +38,7 @@ class Game {
     this.#user = user;
     this.#userIsPlayer = userIsPlayer;
 
-    this.#players = Object.entries(gameState.players.state).reduce((acc, [plrId, plrState], i) => {
+    this.#players = Object.entries(playersState).reduce((acc, [plrId, plrState], i) => {
       let x: number;
       if (i === 0) {
         x = FIELD_MARGIN;
@@ -49,6 +50,7 @@ class Game {
         id: plrId,
         x,
         y: plrState.y,
+        direction: plrState.direction,
         width: PLR_WIDTH,
         height: PLR_HEIGHT,
         mark: plrState.mark,
@@ -103,6 +105,7 @@ class Game {
     this.#keysPressed[key] = true;
 
     if (this.#user) {
+      // console.log('emit down');
       this.#socket.emit('player-key-down', {
         gameId: this.gameState.id,
         userId: this.#user.id,
@@ -216,42 +219,42 @@ class Game {
   };
 }
 
-type GameId = string;
-type UserId = string;
+export type GameId = string;
+export type UserId = string;
+type Direction = 'up' | 'down' | null;
+type Mark = 'x' | 'o';
+
 export type GameState = {
   id: GameId;
   selected: string;
   turn: string;
   playState: 'waiting_for_players' | 'playing' | 'paused' | 'finished';
   phase: 'picking' | 'cell_attempt';
-  players: {
-    order: { 1: UserId; 2: UserId; },
-    state: {
-      [UserId: string]: {
-        id: UserId;
-        y: number;
-        direction: null | 'up' | 'down';
-        mark: 'x' | 'o';
-        connected: boolean;
-        socketId: string;
-      }
-    }
-  }
+  players: { 1: UserId; 2: UserId };
 };
 
-type PlayerState = {
+export type ServerPlayerState = {
+  id: UserId;
+  y: number;
+  direction: Direction;
+  mark: Mark;
+  connected: boolean;
+  socketId: string;
+};
+
+type ClientPlayerState = {
   id: string;
   x: number;
   y: number;
   width: number;
   height: number;
-  direction: null | 'up' | 'down';
-  mark: 'x' | 'o';
+  direction: Direction;
+  mark: Mark;
 };
 
 type PlayerKeypressData = {
   userId: string;
-  direction: null | 'up' | 'down';
+  direction: Direction;
 };
 
 type PlayerKeypressUpData = PlayerKeypressData & {

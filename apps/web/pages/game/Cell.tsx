@@ -28,8 +28,8 @@ const Cell: React.VFC<Props> = (props) => {
         {
           'opacity-0': !isSelected,
           'hover:opacity-50': !isSelected,
-          'bg-player-1': props.gameState.turn === props.gameState.players.order[1],
-          'bg-player-2': props.gameState.turn === props.gameState.players.order[2],
+          'bg-player-1': props.gameState.turn === props.gameState.players[1],
+          'bg-player-2': props.gameState.turn === props.gameState.players[2],
         },
       )}
       style={{
