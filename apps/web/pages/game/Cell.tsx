@@ -2,9 +2,10 @@ import * as React from 'react';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
 
-import type { GameState } from 'pages/game/[gameId]';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
+
+import type { GameStateClientGame } from './[gameId]';
 
 
 const Cell: React.VFC<Props> = (props) => {
@@ -17,7 +18,7 @@ const Cell: React.VFC<Props> = (props) => {
     socket.emit('player-select-cell', {
       gameId: query.gameId,
       userId: user?.id,
-      selected: props.cellId,
+      cellId: props.cellId,
     });
   }
 
@@ -47,7 +48,7 @@ export type Props = {
   x: number;
   y: number;
   cellId: string;
-  gameState?: GameState;
+  gameState?: GameStateClientGame;
 };
 
 export default Cell;

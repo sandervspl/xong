@@ -3,15 +3,15 @@ import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import classNames from 'classnames';
 import { useImmer } from 'use-immer';
+import axios from 'axios';
 
-import type { GameId, PlaystateTypes, UserId } from 'lib/Game';
+import type { CellId, GameId, Mark, PlaystateTypes, UserId } from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
 import isServer from 'utils/isServer';
 
-import axios from 'axios';
 import Cell from './Cell';
 
 
@@ -22,12 +22,15 @@ const GameLobby: React.VFC<Props> = (props) => {
   const [loading, setLoading] = React.useState(true);
   const user = getItem('usernames')?.find((val) => val.active);
   const userIsPlayer = !!user && Object.values(props.game.players).includes(user.id);
-  const [gameState, setGameState] = useImmer<GameState>(props.game);
-  const [playersState, setPlayersState] = useImmer<PlayersState>(
-    props.players.reduce((acc, plr) => {
+  const [gameState, setGameState] = useImmer<GameStateClientGame>({
+    ...props.game,
+    xoState: new Map(props.game.xoState),
+  });
+  const [playersState, setPlayersState] = useImmer<PlayersStateClient>(
+    props.players.reduce<PlayersStateClient>((acc, plr) => {
       acc[plr.id] = plr;
       return acc;
-    }, {} as PlayersState),
+    }, {}),
   );
   const [countdown, setCountdown] = React.useState(3);
 
@@ -56,7 +59,12 @@ const GameLobby: React.VFC<Props> = (props) => {
         userIsPlayer,
       );
 
-      setGameState(data.game);
+      const clientGame: GameStateClientGame = {
+        ...data.game,
+        xoState: new Map(data.game.xoState),
+      };
+
+      setGameState(clientGame);
       setPlayersState(data.players);
       setLoading(false);
     });
@@ -87,7 +95,7 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     socket.on('player-select-cell', (data: PlayerSelectCellData) => {
       setGameState((draft) => {
-        draft!.selected = data.selected;
+        draft.selected = data.cellId;
       });
     });
 
@@ -207,10 +215,10 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     ? 'http://localhost:5000'
     : 'https://xong-game-server.herokuapp.com';
 
-  const game = await axios.get<GameStateResponse>(`${host}/game/${ctx.query.gameId}`);
+  const response = await axios.get<GameStateResponse>(`${host}/game/${ctx.query.gameId}`);
   const gameDB = await sdk.GetGameById({ id: ctx.query.gameId as string });
 
-  if (!game || !gameDB.findGameByID || game.data.players.length === 0) {
+  if (!response?.data || !gameDB.findGameByID || Object.keys(response?.data.players).length === 0) {
     return {
       redirect: {
         destination: '/',
@@ -219,37 +227,44 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
     };
   }
 
-  const players: unknown[] = [];
-  for (const plr of gameDB.findGameByID.players.data) {
-    const plrState = game.data.players.find((val) => val.id === plr?._id);
-    (plrState as any).username = plr?.username;
+  // Convert to client state
+  const clientPlayers: GameStateClientPlayer[] = [];
 
-    players.push(plrState);
+  for (const plr of gameDB.findGameByID.players.data) {
+    const plrState = response.data.players[plr?._id || ''];
+
+    if (plrState && plr) {
+      const clientPlr: GameStateClientPlayer = {
+        ...plrState,
+        username: plr.username,
+      };
+
+      clientPlayers.push(clientPlr);
+    }
   }
 
   return {
     props: {
-      game: game.data.game,
-      players: game.data.players,
+      game: response.data.game,
+      players: clientPlayers,
     },
   };
 };
 
 type Props = {
-  game: GameStateResponse['game'];
-  players: GameStateResponse['players'];
+  game: GameStateServerGame;
+  players: GameStateClientPlayer[];
 };
 
 type Queries = {
   gameId: string;
 };
 
-export type GameState = GameStateResponse['game'];
-export type PlayersState = Record<UserId, Omit<GameStateResponse['players'][number], 'username'>>;
+export type PlayersStateClient = Record<UserId, GameStateServerPlayer>;
 
 type PlayerSelectCellData = {
-  userId: string;
-  selected: string;
+  userId: UserId;
+  cellId: CellId;
 };
 
 type PlayerConnectUpdateData = {
@@ -258,8 +273,8 @@ type PlayerConnectUpdateData = {
 };
 
 type UserJoinedData = {
-  game: GameState;
-  players: PlayersState;
+  game: GameStateServerGame;
+  players: Record<UserId, GameStateServerPlayer>;
 };
 
 type UserLeftData = {
@@ -268,28 +283,43 @@ type UserLeftData = {
   reason: string | null;
 };
 
+export type XoState = {
+  cellId: CellId;
+  mark: Mark;
+  state: null | 'selected' | 'captured';
+};
+
+export type GameStateServerPlayer = {
+  id: UserId;
+  gameId: GameId;
+  y: number;
+  direction: null | 'up' | 'down';
+  connected: boolean;
+  socketId: string;
+  mark: string;
+};
+
+export type GameStateServerGame = {
+  id: GameId;
+  selected: string;
+  turn: string;
+  playState: string;
+  phase: string;
+  players:  { 1: UserId; 2: UserId };
+  xoState: [CellId, XoState][];
+};
+
 export type GameStateResponse = {
-  game: {
-    id: GameId;
-    selected: string;
-    turn: string;
-    playState: string;
-    phase: string;
-    players:  {
-      1: UserId;
-      2: UserId;
-    };
-  };
-  players: {
-    id: UserId;
-    gameId: GameId;
-    y: number;
-    direction?: any;
-    connected: boolean;
-    socketId: string;
-    mark: string;
-    username: string;
-  }[];
+  game: GameStateServerGame;
+  players: Record<UserId, GameStateServerPlayer>;
+};
+
+export type GameStateClientGame = Omit<GameStateServerGame, 'xoState'> & {
+  xoState: Map<CellId, XoState>;
+};
+
+export type GameStateClientPlayer = GameStateServerPlayer & {
+  username: string;
 };
 
 export default GameLobby;

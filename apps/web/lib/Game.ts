@@ -1,7 +1,7 @@
 import type { Socket } from 'socket.io-client';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
-import type { PlayersState, GameState } from 'pages/game/[gameId]';
+import type { GameStateServerGame, GameStateServerPlayer } from 'pages/game/[gameId]';
 
 import { theme } from '../tailwind.config.js';
 
@@ -21,14 +21,13 @@ class Game {
   #user?: StoredUser;
   #keysPressed: Record<string, boolean> = {};
   #socket: Socket;
-  #userIsPlayer: boolean;
-  gameState: GameState;
+  gameState: GameStateServerGame;
   cells: { x: number; y: number; cellId: string }[] = [];
 
   constructor(
     socket: Socket,
-    gameState: GameState,
-    playersState: PlayersState,
+    gameState: GameStateServerGame,
+    playersState: Record<UserId, GameStateServerPlayer>,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
   ) {
@@ -37,7 +36,6 @@ class Game {
     this.#ctx = this.#canvas.getContext('2d')!;
     this.#socket = socket;
     this.#user = user;
-    this.#userIsPlayer = userIsPlayer;
 
     this.#players = Object.entries(playersState).reduce((acc, [plrId, plrState], i) => {
       let x: number;
@@ -222,9 +220,10 @@ class Game {
 
 export type GameId = string;
 export type UserId = string;
+export type CellId = string;
 export type PlaystateTypes = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
-type Direction = 'up' | 'down' | null;
-type Mark = 'x' | 'o';
+export type Direction = 'up' | 'down' | null;
+export type Mark = 'x' | 'o';
 
 export type ServerPlayerState = {
   id: UserId;
