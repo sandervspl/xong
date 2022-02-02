@@ -252,6 +252,7 @@ export type GameId = string;
 export type UserId = string;
 export type CellId = string;
 export type PlaystateTypes = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
+export type PhaseTypes = 'pong' | 'xo';
 export type Direction = 'up' | 'down' | null;
 export type Mark = 'x' | 'o';
 

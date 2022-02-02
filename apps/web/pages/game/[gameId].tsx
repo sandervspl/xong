@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 import axios from 'axios';
 
-import type { CellId, GameId, Mark, PlaystateTypes, UserId } from 'lib/Game';
+import type { CellId, GameId, Mark, PhaseTypes, PlaystateTypes, UserId } from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
@@ -87,6 +87,12 @@ const GameLobby: React.VFC<Props> = (props) => {
       });
     });
 
+    socket.on('game-phase-update', (update: PhaseTypes) => {
+      setGameState((draft) => {
+        draft.phase = update;
+      });
+    });
+
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
       setPlayersState((draft) => {
         draft[update.userId].connected = update.connected;
@@ -95,7 +101,15 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     socket.on('player-select-cell', (data: PlayerSelectCellData) => {
       setGameState((draft) => {
-        draft.selected = data.cellId;
+        draft.xoState = new Map(data.xoState);
+      });
+    });
+
+    socket.on('player-hit-cell', (data: PlayerHitCellData) => {
+      setGameState((draft) => {
+        draft.xoState = new Map(data.xoState);
+        draft.turn = data.turn;
+        draft.phase = data.phase;
       });
     });
 
@@ -186,6 +200,7 @@ const GameLobby: React.VFC<Props> = (props) => {
                 y={cellData.y}
                 cellId={cellData.cellId}
                 gameState={gameState}
+                userIsPlayer={userIsPlayer}
               />
             ))}
 
@@ -262,9 +277,16 @@ type Queries = {
 
 export type PlayersStateClient = Record<UserId, GameStateServerPlayer>;
 
+type SerializedXoState = [CellId, XoState][];
+
 type PlayerSelectCellData = {
-  userId: UserId;
-  cellId: CellId;
+  xoState: SerializedXoState;
+};
+
+type PlayerHitCellData = {
+  xoState: SerializedXoState;
+  turn: UserId;
+  phase: PhaseTypes;
 };
 
 type PlayerConnectUpdateData = {
@@ -287,6 +309,7 @@ export type XoState = {
   cellId: CellId;
   mark: Mark;
   state: null | 'selected' | 'captured';
+  user: UserId;
 };
 
 export type GameStateServerPlayer = {
@@ -301,10 +324,9 @@ export type GameStateServerPlayer = {
 
 export type GameStateServerGame = {
   id: GameId;
-  selected: string;
   turn: string;
-  playState: string;
-  phase: string;
+  playState: PlaystateTypes;
+  phase: PhaseTypes;
   players:  { 1: UserId; 2: UserId };
   xoState: [CellId, XoState][];
 };
