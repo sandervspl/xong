@@ -5,7 +5,9 @@ import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 import axios from 'axios';
 
-import type { BallState, CellId, GameId, Mark, PhaseTypes, PlaystateTypes, UserId } from 'lib/Game';
+import type {
+  BallState, CellId, CellState, FieldCellState, GameId, Mark, PhaseTypes, PlaystateTypes, UserId,
+} from 'lib/Game';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
@@ -33,6 +35,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     }, {}),
   );
   const [countdown, setCountdown] = React.useState(3);
+  const [cells, setCells] = React.useState<Map<CellId, FieldCellState>>(new Map());
 
   // Never use these for changing values
   const p1_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[1]));
@@ -64,6 +67,9 @@ const GameLobby: React.VFC<Props> = (props) => {
         xoState: new Map(data.game.xoState),
       };
 
+      const nextCells = gameRef.current.drawXOField();
+
+      setCells(nextCells);
       setGameState(clientGame);
       setPlayersState(data.players);
       setLoading(false);
@@ -208,16 +214,19 @@ const GameLobby: React.VFC<Props> = (props) => {
               <div className="absolute text-6xl">You won!</div>
             )}
 
-            {gameState?.playState === 'playing' && gameRef.current?.cells?.map((cellData, i) => (
-              <Cell
-                key={i}
-                x={cellData.x}
-                y={cellData.y}
-                cellId={cellData.cellId}
-                gameState={gameState}
-                userIsPlayer={userIsPlayer}
-              />
-            ))}
+            {
+              gameState?.playState === 'playing' && cells.size > 0 &&
+              [...cells.values()].map((cellData, i) => (
+                <Cell
+                  key={i}
+                  x={cellData.x}
+                  y={cellData.y}
+                  cellId={cellData.cellId}
+                  gameState={gameState}
+                  userIsPlayer={userIsPlayer}
+                />
+              ))
+            }
 
             <canvas
               id="game"
@@ -294,12 +303,12 @@ export type PlayersStateClient = Record<UserId, GameStateServerPlayer>;
 
 type SerializedXoState = [CellId, XoState][];
 
-type PlayerSelectCellData = {
+export type PlayerSelectCellData = {
   xoState: SerializedXoState;
   phase: PhaseTypes;
 };
 
-type PlayerHitCellData = {
+export type PlayerHitCellData = {
   xoState: SerializedXoState;
   turn: UserId;
   phase: PhaseTypes;
@@ -324,7 +333,7 @@ type UserLeftData = {
 export type XoState = {
   cellId: CellId;
   mark: Mark;
-  state: null | 'selected' | 'captured';
+  state: CellState;
   user: UserId;
 };
 

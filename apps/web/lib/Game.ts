@@ -1,7 +1,9 @@
 import type { Socket } from 'socket.io-client';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
-import type { GameStateServerGame, GameStateServerPlayer } from 'pages/game/[gameId]';
+import type {
+  GameStateServerGame, GameStateServerPlayer, PlayerHitCellData, PlayerSelectCellData, XoState,
+} from 'pages/game/[gameId]';
 
 import { theme } from '../tailwind.config.js';
 
@@ -25,7 +27,7 @@ class Game {
   #socket: Socket;
   #ball: BallState;
   gameState: GameStateServerGame;
-  cells: { x: number; y: number; cellId: string }[] = [];
+  #cells: Map<CellId, FieldCellState> = new Map();
 
   constructor(
     socket: Socket,
@@ -39,6 +41,14 @@ class Game {
     this.#ctx = this.#canvas.getContext('2d')!;
     this.#socket = socket;
     this.#user = user;
+
+    for (const [cellId, cellState] of gameState.xoState) {
+      this.#cells.set(cellId, {
+        ...cellState,
+        x: 0,
+        y: 0,
+      });
+    }
 
     this.#ball = gameState.playState !== 'playing'
       ? { ...gameState.ball }
@@ -100,11 +110,43 @@ class Game {
       }
     });
 
-    socket.on('ball-hit-object', (data: PlayerHitCellData) => {
+    socket.on('ball-hit-object', (data: BallHitObjectData) => {
       this.#ball = data.ball;
     });
 
-    this.#drawXOField();
+    socket.on('player-select-cell', (data: PlayerSelectCellData) => {
+      for (const [cellId, nextCellState] of data.xoState) {
+        const curCellState = this.#cells.get(cellId);
+
+        if (!curCellState) {
+          console.log(this.#cells);
+          throw Error('no cell');
+        }
+
+        this.#cells.set(cellId, {
+          ...curCellState,
+          ...nextCellState,
+        });
+      }
+    });
+
+    socket.on('player-hit-cell', (data: PlayerHitCellData) => {
+      for (const [cellId, nextCellState] of data.xoState) {
+        const curCellState = this.#cells.get(cellId);
+
+        if (!curCellState) {
+          console.log(this.#cells);
+          throw Error('no cell');
+        }
+
+        this.#cells.set(cellId, {
+          ...curCellState,
+          ...nextCellState,
+        });
+      }
+    });
+
+    // this.drawXOField();
     this.#tick();
   }
 
@@ -351,7 +393,37 @@ class Game {
     }
   };
 
-  #drawXOField = () => {
+  #checkCellsCollision = () => {
+    const { position } = this.#ball;
+    let hitCell: FieldCellState | null = null;
+
+    for (const cell of this.#cells.values()) {
+      const x2 = cell.x + XO_SQUARE_SIZE;
+      const y2 = cell.y + XO_SQUARE_SIZE;
+
+      if (
+        cell.state === 'selected' &&
+        position.x > cell.x && position.x < x2 && position.y > cell.y && position.y < y2
+      ) {
+        hitCell = cell;
+      }
+    }
+
+    if (hitCell) {
+      this.#cells.set(hitCell.cellId, {
+        ...hitCell,
+        state: 'captured',
+      });
+
+      this.#socket.emit('player-hit-cell', {
+        gameId: this.gameState.id,
+        userId: this.gameState.turn,
+        cellId: hitCell,
+      });
+    }
+  };
+
+  drawXOField = () => {
     const CELL_SIZE = XO_SQUARE_SIZE;
     const Mx = this.#canvas.width / 2;
     const My = this.#canvas.height / 2;
@@ -364,16 +436,26 @@ class Game {
     const L4x = L3x;
     const L4y = My + (CELL_SIZE / 2);
 
-    if (this.cells.length === 0) {
+    // Check if cells have not been placed yet
+    const [, cellState] = [...this.#cells][0];
+    if (cellState.x === 0) {
       for (let x = 0; x < 3; x++) {
         for (let y = 0; y < 3; y++) {
-          const CellX = L3x + (CELL_SIZE * x);
-          const CellY = L1y + (CELL_SIZE * y);
+          const cellX = L3x + (CELL_SIZE * x);
+          const cellY = L1y + (CELL_SIZE * y);
+          const cellId = '' + x + y;
 
-          this.cells.push({
-            x: CellX,
-            y: CellY,
-            cellId: '' + x + y,
+          const cell = this.#cells.get(cellId);
+
+          if (!cell) {
+            console.log(this.#cells);
+            throw Error('no cell');
+          }
+
+          this.#cells.set(cellId, {
+            ...cell,
+            x: cellX,
+            y: cellY,
           });
         }
       }
@@ -396,6 +478,8 @@ class Game {
       }
       this.#ctx.stroke();
     }
+
+    return this.#cells;
   };
 
   #drawPlayers = () => {
@@ -427,7 +511,7 @@ class Game {
 
   #draw = () => {
     this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-    this.#drawXOField();
+    this.drawXOField();
     this.#drawPlayers();
     this.#drawBall();
   };
@@ -435,7 +519,9 @@ class Game {
   #tick = () => {
     this.#updatePositions();
     this.#draw();
-    requestAnimationFrame(this.#tick);
+    this.#checkCellsCollision();
+    // requestAnimationFrame(this.#tick);
+    setTimeout(this.#tick, 100);
   };
 }
 
@@ -446,6 +532,12 @@ export type PlaystateTypes = 'waiting_for_players' | 'starting' | 'playing' | 'p
 export type PhaseTypes = 'pong' | 'xo';
 export type Direction = 'up' | 'down' | null;
 export type Mark = 'x' | 'o';
+export type CellState = null | 'selected' | 'captured';
+
+export type FieldCellState = XoState & {
+  x: number;
+  y: number;
+};
 
 export type ServerPlayerState = {
   id: UserId;
@@ -476,7 +568,7 @@ type PlayerKeypressUpData = PlayerKeypressData & {
   y: number;
 };
 
-type PlayerHitCellData = {
+type BallHitObjectData = {
   ball: BallState;
 };
 

@@ -26,12 +26,6 @@ const Cell: React.VFC<Props> = (props) => {
         cellId: props.cellId,
       });
     }
-
-    // socket.emit('player-hit-cell', {
-    //   gameId: query.gameId,
-    //   userId: user?.id,
-    //   cellId: props.cellId,
-    // });
   }
 
   return (
