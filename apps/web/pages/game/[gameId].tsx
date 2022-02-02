@@ -52,6 +52,14 @@ const GameLobby: React.VFC<Props> = (props) => {
       setLoading(false);
     });
 
+    socket.on('user-left-game', (data: UserLeftData) => {
+      if (data.isPlayer) {
+        setGameState((draft) => {
+          draft!.playState = 'finished';
+        });
+      }
+    });
+
     socket.on('game-playstate-update', (update: PlaystateTypes) => {
       setGameState((draft) => {
         draft!.playState = update;
@@ -72,6 +80,11 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     return function cleanup() {
       gameRef.current?.unload();
+
+      socket.emit('user-left-game', {
+        userId: user?.id,
+        gameId: (query as Queries).gameId,
+      });
     };
   }, [setGameState, setLoading]);
 
@@ -124,6 +137,10 @@ const GameLobby: React.VFC<Props> = (props) => {
 
             {gameState?.playState === 'waiting_for_players' && (
               <div className="absolute text-6xl">Waiting for players...</div>
+            )}
+            {/** @TODO add check */}
+            {gameState?.playState === 'finished' && (
+              <div className="absolute text-6xl">You won!</div>
             )}
 
             {gameState?.playState === 'playing' && gameRef.current?.cells?.map((cellData, i) => (
@@ -198,6 +215,12 @@ type PlayerConnectUpdateData = {
 type UserJoinedData = {
   game: GameState;
   players: Record<UserId, ServerPlayerState>;
+};
+
+type UserLeftData = {
+  userId: UserId;
+  isPlayer: boolean;
+  reason: string | null;
 };
 
 export default GameLobby;
