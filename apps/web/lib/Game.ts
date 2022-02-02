@@ -230,7 +230,7 @@ export type GameState = {
   selected: string;
   turn: string;
   playState: PlaystateTypes;
-  phase: 'picking' | 'cell_attempt';
+  phase: 'xo' | 'pong';
   players: { 1: UserId; 2: UserId };
 };
 
