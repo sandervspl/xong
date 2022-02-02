@@ -94,7 +94,11 @@ const GameLobby: React.VFC<Props> = (props) => {
   }, [setGameState, setLoading]);
 
   React.useEffect(() => {
-    if (countdown === 0) {
+    if (gameState?.playState !== 'starting') {
+      return;
+    }
+
+    if (countdown <= 0) {
       socket.emit('game-playstate-update', {
         gameId: (query as Queries).gameId,
         playState: 'playing',
@@ -103,7 +107,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     else if (countdown < 3) {
       doCountdown();
     }
-  }, [countdown]);
+  }, [countdown, gameState]);
 
   function doCountdown() {
     setTimeout(() => {
@@ -156,6 +160,10 @@ const GameLobby: React.VFC<Props> = (props) => {
           </div>
 
           <div className="relative grid place-items-center w-full h-[600px]">
+            {gameState?.phase === 'xo' && gameState?.turn === user?.id && (
+              <p className="absolute self-start text-5xl mt-2">It{'\''}s your turn to pick!</p>
+            )}
+
             {loading && <p className="text-6xl">Loading game...</p>}
 
             {gameState?.playState === 'waiting_for_players' && (
