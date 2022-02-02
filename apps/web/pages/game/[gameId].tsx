@@ -69,6 +69,10 @@ const GameLobby: React.VFC<Props> = (props) => {
         draft!.selected = data.selected;
       });
     });
+
+    return function cleanup() {
+      gameRef.current?.unload();
+    };
   }, [setGameState, setLoading]);
 
   const plr1id = gameState?.players[1];
