@@ -6,7 +6,7 @@
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:import/typescript",
-    "plugin:@next/next/recommended"
+    "next/core-web-vitals"
   ],
   "parserOptions": {
     "ecmaVersion": 2018,
@@ -67,12 +67,7 @@
         "index",
         "parent",
         "sibling"
-      ],
-      "pathGroups": [{
-        "pattern": "types",
-        "group": "builtin",
-        "position": "before"
-      }]
+      ]
     }],
 
     "react/jsx-tag-spacing": 2,

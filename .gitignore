@@ -40,3 +40,9 @@ yarn.lock
 dist/
 .env.local
 .vscode/
+.faunarc
+**/faunadb/generated.ts
+schema.graphql
+
+# Local Netlify folder
+.netlify

@@ -1,0 +1,13 @@
+schema:
+  - https://graphql.fauna.com/graphql:
+      headers:
+        Authorization: 'Bearer ${FAUNA_CLIENT_SECRET}'
+documents: './faunadb/queries/*.graphql'
+generates:
+  ../../schema.graphql:
+      - schema-ast
+  ./faunadb/generated.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-graphql-request
