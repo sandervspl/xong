@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 import axios from 'axios';
@@ -243,32 +244,43 @@ const GameLobby: React.VFC<Props> = (props) => {
           </div>
 
           <div className="relative grid place-items-center w-full h-[600px]">
-            {!loading && gameState?.phase === 'xo' && gameState?.turn === user?.id && gameState?.playState !== 'finished' ? (
-              <p className="absolute self-start text-5xl mt-2">It{'\''}s your turn to pick!</p>
-            ) : null}
-
             {(() => {
               if (loading) {
-                return <p className="text-6xl">Loading game...</p>;
+                return <p className="text-6xl z-10">Loading game...</p>;
               }
 
               if (gameState?.playState === 'finished') {
                 return (
-                  <div className="absolute text-6xl">
-                    {p1_STATIC.current!.id === gameState.winner
-                      ? p1_STATIC.current?.username
-                      : p2_STATIC.current?.username
-                    } has won!
+                  <div className="absolute flex flex-col items-center z-10">
+                    <div className="text-6xl mb-2">
+                      {p1_STATIC.current!.id === gameState.winner
+                        ? p1_STATIC.current?.username
+                        : p2_STATIC.current?.username
+                      } has won!
+                    </div>
+                    <Link href="/" passHref>
+                      <a href="/" className="fancy flex items-center text-secondary text-2xl">
+                        Exit Game
+                      </a>
+                    </Link>
                   </div>
                 );
               }
 
               if (gameState?.playState === 'waiting_for_players') {
-                return <div className="absolute text-6xl">Waiting for players...</div>;
+                return <div className="absolute text-6xl z-10">Waiting for players...</div>;
               }
 
               if (gameState?.playState === 'starting') {
-                return <div className="absolute text-6xl">{preGameCountdown}</div>;
+                return <div className="absolute text-9xl z-10">{preGameCountdown}</div>;
+              }
+
+              if (gameState?.phase === 'xo' && gameState?.turn === user?.id) {
+                return (
+                  <p className="absolute self-start text-5xl mt-2 z-10">
+                    It{'\''}s your turn to pick!
+                  </p>
+                );
               }
 
               return null;
