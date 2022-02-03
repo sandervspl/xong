@@ -69,7 +69,6 @@
         "sibling"
       ]
     }],
-
     "react/jsx-tag-spacing": 2,
     "react/jsx-pascal-case": [0],
     "react/self-closing-comp": ["error", {

@@ -269,6 +269,7 @@ const GameLobby: React.VFC<Props> = (props) => {
                       })()}
                     </div>
                     <Link href="/" passHref>
+                      {/* eslint-disable jsx-a11y/anchor-is-valid */}
                       <a className="fancy flex items-center text-secondary text-2xl">
                         Exit Game
                       </a>
