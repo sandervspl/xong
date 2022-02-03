@@ -41,6 +41,7 @@ const GameLobby: React.VFC<Props> = (props) => {
   const [cells, setCells] = React.useState<Map<CellId, FieldCellState>>(new Map());
   const [preGameCountdown, setPreGameCountdown] = React.useState(3);
   const [pickCountdown, setPickCountdown] = React.useState(-1);
+  const [pongCountdown, setPongCountdown] = React.useState(10);
 
   // Never use these for changing values
   const p1_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[1]));
@@ -49,6 +50,10 @@ const GameLobby: React.VFC<Props> = (props) => {
   useInterval(() => {
     if (gameState.phase === 'xo' && pickCountdown > 0) {
       setPickCountdown((n) => n - 1);
+    }
+
+    if (gameState.phase === 'pong' && pongCountdown > 0) {
+      setPongCountdown((n) => n - 1);
     }
   }, 1000);
 
@@ -129,6 +134,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       });
 
       gameRef.current!.gameState.phase = data.phase;
+      setPongCountdown(10);
     });
 
     socket.on('player-hit-cell', (data: PlayerHitCellData) => {
@@ -147,6 +153,17 @@ const GameLobby: React.VFC<Props> = (props) => {
       gameRef.current!.gameState.playState = data.playState;
       gameRef.current!.gameState.phase = data.phase;
       gameRef.current!.gameState.winner = data.winner;
+    });
+
+    socket.on('player-turn-over', (data: PlayerTurnOverData) => {
+      setGameState((draft) => {
+        draft.xoState = new Map(data.xoState);
+        draft.turn = data.turn;
+        draft.phase = data.phase;
+      });
+
+      gameRef.current!.gameState.phase = data.phase;
+      gameRef.current!.gameState.turn = data.turn;
     });
 
     return function cleanup() {
@@ -213,6 +230,21 @@ const GameLobby: React.VFC<Props> = (props) => {
     setPickCountdown(-1);
   }, [gameState, pickCountdown]);
 
+  React.useEffect(() => {
+    if (gameState.phase !== 'pong' || gameState.playState !== 'playing') {
+      return;
+    }
+
+    if (pongCountdown !== 0) {
+      return;
+    }
+
+    socket.emit('player-turn-over', {
+      gameId: query.gameId,
+      userId: user?.id,
+    });
+  }, [gameState, pongCountdown]);
+
   return (
     <div className="text-primary-500">
       <div className="grid place-items-center h-screen w-screen">
@@ -229,7 +261,10 @@ const GameLobby: React.VFC<Props> = (props) => {
               ) : null}
             </span>
             <span className="flex justify-center flex-1 text-4xl">
-              {gameState.phase === 'xo' && pickCountdown > 0 ? pickCountdown : null}
+              {gameState.phase === 'xo'
+                ? pickCountdown > 0 ? pickCountdown : null
+                : pongCountdown > 0 ? pongCountdown : null
+              }
             </span>
             <span
               className={classNames(
@@ -476,6 +511,12 @@ export type GameStateClientGame = Omit<GameStateServerGame, 'xoState'> & {
 
 export type GameStateClientPlayer = GameStateServerPlayer & {
   username: string;
+};
+
+export type PlayerTurnOverData = {
+  xoState: [CellId, XoState][];
+  phase: PhaseTypes;
+  turn: UserId;
 };
 
 export default GameLobby;

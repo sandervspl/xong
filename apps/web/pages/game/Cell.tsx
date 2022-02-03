@@ -19,6 +19,7 @@ const Cell: React.VFC<Props> = (props) => {
     && isUserTurn;
 
   function handleClick() {
+    console.log(isPickPhase, props.gameState, user?.id);
     if (isPickPhase) {
       socket.emit('player-select-cell', {
         gameId: query.gameId,
