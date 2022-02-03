@@ -17,6 +17,7 @@ const XO_SQUARE_SIZE = Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE);
 const PADDLE_SPEED = Number(process.env.NEXT_PUBLIC_GAME_PADDLE_SPEED);
 const BALL_SIZE = Number(process.env.NEXT_PUBLIC_GAME_BALL_SIZE);
 const BALL_SPEED = Number(process.env.NEXT_PUBLIC_GAME_BALL_SPEED);
+const BALL_SPEED_MOD = Number(process.env.NEXT_PUBLIC_GAME_BALL_SPEED_MOD);
 
 class Game {
   #canvas: HTMLCanvasElement;
@@ -111,6 +112,8 @@ class Game {
         return;
       }
 
+      this.gameState.phase = data.phase;
+
       for (const [cellId, nextCellState] of data.xoState) {
         const curCellState = this.cells.get(cellId);
 
@@ -144,6 +147,8 @@ class Game {
           ...nextCellState,
         });
       }
+      this.gameState.turn = data.turn;
+      this.gameState.phase = data.phase;
     });
 
     // this.drawXOField();
@@ -283,9 +288,11 @@ class Game {
       return;
     }
 
+    const mod = this.gameState.phase === 'xo' ? BALL_SPEED_MOD : 1;
+
     let changed = false;
-    this.#ball.position.x += this.#ball.speed.x;
-    this.#ball.position.y += this.#ball.speed.y;
+    this.#ball.position.x += mod * this.#ball.speed.x;
+    this.#ball.position.y += mod * this.#ball.speed.y;
 
     const { position, speed } = this.#ball;
     const HALF_BALL_SIZE = BALL_SIZE / 2;

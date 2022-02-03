@@ -102,14 +102,6 @@ const GameLobby: React.VFC<Props> = (props) => {
       gameRef.current!.gameState.playState = update;
     });
 
-    socket.on('game-phase-update', (update: PhaseTypes) => {
-      setGameState((draft) => {
-        draft.phase = update;
-      });
-
-      gameRef.current!.gameState.phase = update;
-    });
-
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
       setPlayersState((draft) => {
         draft[update.userId].connected = update.connected;
