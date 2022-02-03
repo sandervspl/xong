@@ -16,7 +16,7 @@ import useLocalStorage from 'hooks/userLocalStorage';
 import useInterval from 'hooks/useInterval';
 import isServer from 'utils/isServer';
 
-import Cell from './Cell';
+import Cell from '../../components/GameLobby/Cell';
 
 
 const PICK_TIMER = Number(process.env.NEXT_PUBLIC_GAME_PICK_TIMER);

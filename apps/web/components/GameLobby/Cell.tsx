@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
 
-import type { GameStateClientGame } from './[gameId]';
+import type { GameStateClientGame } from '../../pages/game/[gameId]';
 
 
 const Cell: React.VFC<Props> = (props) => {
