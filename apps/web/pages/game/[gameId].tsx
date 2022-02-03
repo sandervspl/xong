@@ -247,22 +247,32 @@ const GameLobby: React.VFC<Props> = (props) => {
               <p className="absolute self-start text-5xl mt-2">It{'\''}s your turn to pick!</p>
             ) : null}
 
-            {loading ? <p className="text-6xl">Loading game...</p> : null}
+            {(() => {
+              if (loading) {
+                return <p className="text-6xl">Loading game...</p>;
+              }
 
-            {gameState?.playState === 'finished' ? (
-              <div className="absolute text-6xl">
-                {p1_STATIC.current!.id === gameState.winner
-                  ? p1_STATIC.current?.username
-                  : p2_STATIC.current?.username
-                } has won!
-              </div>
-            ) : null}
-            {gameState?.playState === 'waiting_for_players' ? (
-              <div className="absolute text-6xl">Waiting for players...</div>
-            ) : null}
-            {gameState?.playState === 'starting' ? (
-              <div className="absolute text-6xl">{preGameCountdown}</div>
-            ) : null}
+              if (gameState?.playState === 'finished') {
+                return (
+                  <div className="absolute text-6xl">
+                    {p1_STATIC.current!.id === gameState.winner
+                      ? p1_STATIC.current?.username
+                      : p2_STATIC.current?.username
+                    } has won!
+                  </div>
+                );
+              }
+
+              if (gameState?.playState === 'waiting_for_players') {
+                return <div className="absolute text-6xl">Waiting for players...</div>;
+              }
+
+              if (gameState?.playState === 'starting') {
+                return <div className="absolute text-6xl">{preGameCountdown}</div>;
+              }
+
+              return null;
+            })()}
 
             {
               gameState?.playState !== 'waiting_for_players' &&
