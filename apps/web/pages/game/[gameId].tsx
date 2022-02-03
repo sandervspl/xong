@@ -13,6 +13,7 @@ import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
+import useInterval from 'hooks/useInterval';
 import isServer from 'utils/isServer';
 
 import Cell from './Cell';
@@ -333,28 +334,6 @@ const GameLobby: React.VFC<Props> = (props) => {
     </div>
   );
 };
-
-function useInterval(callback: () => void, delay: number | null) {
-  const savedCallback = React.useRef(callback);
-
-  // Remember the latest callback if it changes.
-  React.useLayoutEffect(() => {
-    savedCallback.current = callback;
-  }, [callback]);
-
-  // Set up the interval.
-  React.useEffect(() => {
-    // Don't schedule if no delay is specified.
-    // Note: 0 is a valid value for delay.
-    if (!delay && delay !== 0) {
-      return;
-    }
-
-    const id = setInterval(() => savedCallback.current(), delay);
-
-    return () => clearInterval(id);
-  }, [delay]);
-}
 
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
