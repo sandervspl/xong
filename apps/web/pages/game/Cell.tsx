@@ -36,14 +36,18 @@ const Cell: React.VFC<Props> = (props) => {
           'opacity-0': !cellData?.state || cellData?.state !== 'selected',
           'hover:opacity-50': !cellData?.state || cellData?.state !== 'selected',
           'opacity-75': cellData?.state === 'captured',
+        },
+        {
           'bg-player-1': cellData?.state === 'captured'
             ? cellData?.user === props.gameState?.players[1]
             : props.gameState?.turn === props.gameState?.players[1],
+        },
+        {
           'bg-player-2': cellData?.state === 'captured'
             ? cellData?.user === props.gameState?.players[2]
             : props.gameState?.turn === props.gameState?.players[2],
-          'pointer-events-none': !isPickPhase,
         },
+        { 'pointer-events-none': !isPickPhase || cellData?.state === 'captured' },
       )}
       style={{
         top: props.y + 4 + 'px',

@@ -26,29 +26,20 @@ class Game {
   #keysPressed: Set<string> = new Set<string>();
   #socket: Socket;
   #ball: BallState;
-  gameState: GameStateServerGame;
-  #cells: Map<CellId, FieldCellState> = new Map();
 
   constructor(
     socket: Socket,
-    gameState: GameStateServerGame,
     playersState: Record<UserId, GameStateServerPlayer>,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
+    public gameState: GameStateServerGame,
+    public setCells: React.Dispatch<React.SetStateAction<Map<string, FieldCellState>>>,
+    public cells?: Map<string, FieldCellState>,
   ) {
-    this.gameState = gameState;
     this.#canvas = document.getElementById('game') as HTMLCanvasElement;
     this.#ctx = this.#canvas.getContext('2d')!;
     this.#socket = socket;
     this.#user = user;
-
-    for (const [cellId, cellState] of gameState.xoState) {
-      this.#cells.set(cellId, {
-        ...cellState,
-        x: 0,
-        y: 0,
-      });
-    }
 
     this.#ball = gameState.playState !== 'playing'
       ? { ...gameState.ball }
@@ -115,15 +106,19 @@ class Game {
     });
 
     socket.on('player-select-cell', (data: PlayerSelectCellData) => {
+      if (!this.cells) {
+        console.error('ERR "player-select-cell": no cells');
+        return;
+      }
+
       for (const [cellId, nextCellState] of data.xoState) {
-        const curCellState = this.#cells.get(cellId);
+        const curCellState = this.cells.get(cellId);
 
         if (!curCellState) {
-          console.log(this.#cells);
           throw Error('no cell');
         }
 
-        this.#cells.set(cellId, {
+        this.#updateCells(cellId, {
           ...curCellState,
           ...nextCellState,
         });
@@ -131,15 +126,20 @@ class Game {
     });
 
     socket.on('player-hit-cell', (data: PlayerHitCellData) => {
+      if (!this.cells) {
+        console.error('ERR "player-hit-cell": no cells');
+        return;
+      }
+
       for (const [cellId, nextCellState] of data.xoState) {
-        const curCellState = this.#cells.get(cellId);
+        const curCellState = this.cells.get(cellId);
 
         if (!curCellState) {
-          console.log(this.#cells);
-          throw Error('no cell');
+          console.error('ERR "player-hit-cell": no cell');
+          return;
         }
 
-        this.#cells.set(cellId, {
+        this.#updateCells(cellId, {
           ...curCellState,
           ...nextCellState,
         });
@@ -189,6 +189,15 @@ class Game {
     };
   };
 
+  #updateCells = (key: CellId, value: FieldCellState) => {
+    if (this.cells) {
+      this.cells.set(key, value);
+      this.setCells(this.cells);
+    } else {
+      console.error('ERR "updateCells": no cells');
+    }
+  };
+
   #updateDirection = () => {
     if (!this.#user) {
       return;
@@ -216,6 +225,10 @@ class Game {
 
   #onKeyDown = (e: KeyboardEvent) => {
     const key = e.key.toLowerCase();
+
+    if (key === 'enter') {
+      this.#tick();
+    }
 
     if (this.#keysPressed.has(key)) {
       return;
@@ -397,12 +410,16 @@ class Game {
     const { position } = this.#ball;
     let hitCell: FieldCellState | null = null;
 
-    for (const cell of this.#cells.values()) {
+    if (!this.cells) {
+      return;
+    }
+
+    for (const cell of this.cells.values()) {
       const x2 = cell.x + XO_SQUARE_SIZE;
       const y2 = cell.y + XO_SQUARE_SIZE;
 
       if (
-        cell.state === 'selected' &&
+        cell.state === 'selected' && cell.user === this.#user?.id &&
         position.x > cell.x && position.x < x2 && position.y > cell.y && position.y < y2
       ) {
         hitCell = cell;
@@ -410,20 +427,20 @@ class Game {
     }
 
     if (hitCell) {
-      this.#cells.set(hitCell.cellId, {
+      this.#updateCells(hitCell.cellId, {
         ...hitCell,
         state: 'captured',
       });
 
       this.#socket.emit('player-hit-cell', {
         gameId: this.gameState.id,
-        userId: this.gameState.turn,
-        cellId: hitCell,
+        userId: this.#user?.id,
+        cellId: hitCell.cellId,
       });
     }
   };
 
-  drawXOField = () => {
+  drawXOField = (cells?: Map<string, XoState>) => {
     const CELL_SIZE = XO_SQUARE_SIZE;
     const Mx = this.#canvas.width / 2;
     const My = this.#canvas.height / 2;
@@ -436,30 +453,34 @@ class Game {
     const L4x = L3x;
     const L4y = My + (CELL_SIZE / 2);
 
-    // Check if cells have not been placed yet
-    const [, cellState] = [...this.#cells][0];
-    if (cellState.x === 0) {
-      for (let x = 0; x < 3; x++) {
-        for (let y = 0; y < 3; y++) {
-          const cellX = L3x + (CELL_SIZE * x);
-          const cellY = L1y + (CELL_SIZE * y);
-          const cellId = '' + x + y;
+    const newCells = (() => {
+      if (cells) {
+        const cellsCopy = new Map(cells) as Map<string, FieldCellState>;
 
-          const cell = this.#cells.get(cellId);
+        for (let x = 0; x < 3; x++) {
+          for (let y = 0; y < 3; y++) {
+            const cellX = L3x + (CELL_SIZE * x);
+            const cellY = L1y + (CELL_SIZE * y);
+            const cellId = '' + x + y;
 
-          if (!cell) {
-            console.log(this.#cells);
-            throw Error('no cell');
+            const cell = cells.get(cellId);
+
+            if (!cell) {
+              console.error('ERR "drawXOField": no cells');
+              return;
+            }
+
+            cellsCopy.set(cellId, {
+              ...cell,
+              x: cellX,
+              y: cellY,
+            });
           }
-
-          this.#cells.set(cellId, {
-            ...cell,
-            x: cellX,
-            y: cellY,
-          });
         }
+
+        return cellsCopy;
       }
-    }
+    })();
 
     for (const [d, x, y] of [
       [0, L1x, L1y],
@@ -479,7 +500,7 @@ class Game {
       this.#ctx.stroke();
     }
 
-    return this.#cells;
+    return newCells;
   };
 
   #drawPlayers = () => {
@@ -520,8 +541,8 @@ class Game {
     this.#updatePositions();
     this.#draw();
     this.#checkCellsCollision();
-    // requestAnimationFrame(this.#tick);
-    setTimeout(this.#tick, 100);
+    requestAnimationFrame(this.#tick);
+    // setTimeout(this.#tick, 100);
   };
 }
 

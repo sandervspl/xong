@@ -56,10 +56,11 @@ const GameLobby: React.VFC<Props> = (props) => {
 
       gameRef.current = new Game(
         socket,
-        data.game,
         data.players,
         user,
         userIsPlayer,
+        data.game,
+        setCells,
       );
 
       const clientGame: GameStateClientGame = {
@@ -67,7 +68,8 @@ const GameLobby: React.VFC<Props> = (props) => {
         xoState: new Map(data.game.xoState),
       };
 
-      const nextCells = gameRef.current.drawXOField();
+      const nextCells = gameRef.current.drawXOField(clientGame.xoState)!;
+      gameRef.current.cells = nextCells;
 
       setCells(nextCells);
       setGameState(clientGame);
@@ -154,6 +156,12 @@ const GameLobby: React.VFC<Props> = (props) => {
       doCountdown();
     }
   }, [countdown, gameState]);
+
+  React.useEffect(() => {
+    if (gameRef.current) {
+      gameRef.current.cells = cells;
+    }
+  }, [gameRef.current, cells]);
 
   function doCountdown() {
     setTimeout(() => {
