@@ -169,11 +169,6 @@ const GameLobby: React.VFC<Props> = (props) => {
     }, 1000);
   }
 
-  /** @TODO REMOVE THIS */
-  if (process.env.NODE_ENV === 'development') {
-    if (!isServer) (window as any).gs = gameState;
-  }
-
   return (
     <div className="text-primary-500">
       <div className="grid place-items-center h-screen w-screen">

@@ -226,10 +226,6 @@ class Game {
   #onKeyDown = (e: KeyboardEvent) => {
     const key = e.key.toLowerCase();
 
-    if (key === 'enter') {
-      this.#tick();
-    }
-
     if (this.#keysPressed.has(key)) {
       return;
     }
