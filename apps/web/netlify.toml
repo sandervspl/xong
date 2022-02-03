@@ -1,6 +1,8 @@
 [build.environment]
     NPM_FLAGS="--version" # This makes netlify skip their automatic npm install, to let pnpm take care of it.
 
+[context.branch-deploy.environment]
+  NEXT_PUBLIC_WEBSOCKET_URL = "https://develop--xong-game-server.herokuapp.com"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
