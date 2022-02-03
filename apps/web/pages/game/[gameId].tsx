@@ -260,7 +260,12 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   const response = await axios.get<GameStateResponse>(`${host}/game/${ctx.query.gameId}`);
   const gameDB = await sdk.GetGameById({ id: ctx.query.gameId as string });
 
-  if (!response?.data || !gameDB.findGameByID || Object.keys(response?.data.players).length === 0) {
+  if (
+    !response?.data ||
+    !gameDB.findGameByID ||
+    Object.keys(response?.data.players).length < 2 ||
+    gameDB.findGameByID.players.data.length < 2
+  ) {
     return {
       redirect: {
         destination: '/',
