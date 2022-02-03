@@ -259,7 +259,7 @@ const GameLobby: React.VFC<Props> = (props) => {
                       } has won!
                     </div>
                     <Link href="/" passHref>
-                      <a href="/" className="fancy flex items-center text-secondary text-2xl">
+                      <a className="fancy flex items-center text-secondary text-2xl">
                         Exit Game
                       </a>
                     </Link>
