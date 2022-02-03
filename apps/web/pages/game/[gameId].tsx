@@ -253,10 +253,20 @@ const GameLobby: React.VFC<Props> = (props) => {
                 return (
                   <div className="absolute flex flex-col items-center z-10">
                     <div className="text-6xl mb-2">
-                      {p1_STATIC.current!.id === gameState.winner
-                        ? p1_STATIC.current?.username
-                        : p2_STATIC.current?.username
-                      } has won!
+                      {(() => {
+                        if (gameState.winner === 'draw') {
+                          return 'Draw!';
+                        }
+                        else if (gameState.winner != null) {
+                          const username = p1_STATIC.current!.id === gameState.winner
+                            ? p1_STATIC.current?.username
+                            : p2_STATIC.current?.username;
+
+                          return `${username} has won!`;
+                        }
+
+                        return null;
+                      })()}
                     </div>
                     <Link href="/" passHref>
                       <a className="fancy flex items-center text-secondary text-2xl">
