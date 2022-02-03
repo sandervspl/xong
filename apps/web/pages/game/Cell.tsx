@@ -30,6 +30,7 @@ const Cell: React.VFC<Props> = (props) => {
 
   return (
     <button
+      id={props.cellId}
       className={classNames(
         'absolute border-2 border-solid border-secondary text-[10em] text-secondary',
         {

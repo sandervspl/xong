@@ -93,25 +93,26 @@ const GameLobby: React.VFC<Props> = (props) => {
           draft.playState = 'finished';
         });
       }
+
+      gameRef.current!.gameState.playState = 'finished';
     });
 
-    socket.on('game-playstate-update', (update: PlaystateTypes) => {
-      if (update === 'starting') {
+    socket.on('game-playstate-update', (data: PlaystateUpdateData) => {
+      if (data === 'starting') {
         doPregameCountdown();
         gameRef.current!.initBall();
       }
 
-      if (update === 'playing') {
+      if (data === 'playing') {
         setPickCountdown(PICK_TIMER);
-
         gameRef.current!.launchBall();
       }
 
       setGameState((draft) => {
-        draft.playState = update;
+        draft.playState = data;
       });
 
-      gameRef.current!.gameState.playState = update;
+      gameRef.current!.gameState.playState = data;
     });
 
     socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
@@ -125,6 +126,8 @@ const GameLobby: React.VFC<Props> = (props) => {
         draft.xoState = new Map(data.xoState);
         draft.phase = data.phase;
       });
+
+      gameRef.current!.gameState.phase = data.phase;
     });
 
     socket.on('player-hit-cell', (data: PlayerHitCellData) => {
@@ -132,9 +135,17 @@ const GameLobby: React.VFC<Props> = (props) => {
         draft.xoState = new Map(data.xoState);
         draft.turn = data.turn;
         draft.phase = data.phase;
+        draft.winner = data.winner;
+        draft.playState = data.playState;
       });
 
-      setPickCountdown(PICK_TIMER);
+      if (data.winner == null) {
+        setPickCountdown(PICK_TIMER);
+      }
+
+      gameRef.current!.gameState.playState = data.playState;
+      gameRef.current!.gameState.phase = data.phase;
+      gameRef.current!.gameState.winner = data.winner;
     });
 
     return function cleanup() {
@@ -212,9 +223,9 @@ const GameLobby: React.VFC<Props> = (props) => {
               )}
             >
               {p1_STATIC.current?.username} ({p1_STATIC.current?.mark})
-              {!playersState[p1_STATIC.current!.id]?.connected && (
+              {!playersState[p1_STATIC.current!.id]?.connected ? (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
-              )}
+              ) : null}
             </span>
             <span className="flex justify-center flex-1 text-4xl">
               {gameState.phase === 'xo' && pickCountdown > 0 ? pickCountdown : null}
@@ -224,43 +235,50 @@ const GameLobby: React.VFC<Props> = (props) => {
                 'flex justify-end items-center flex-1 text-player-2',
               )}
             >
-              {!playersState[p2_STATIC.current!.id]?.connected && (
+              {!playersState[p2_STATIC.current!.id]?.connected ? (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
-              )}
+              ) : null}
               {p2_STATIC.current?.username} ({p2_STATIC.current?.mark})
             </span>
           </div>
 
           <div className="relative grid place-items-center w-full h-[600px]">
-            {!loading && gameState?.phase === 'xo' && gameState?.turn === user?.id && (
+            {!loading && gameState?.phase === 'xo' && gameState?.turn === user?.id && gameState?.playState !== 'finished' ? (
               <p className="absolute self-start text-5xl mt-2">It{'\''}s your turn to pick!</p>
-            )}
+            ) : null}
 
-            {loading && <p className="text-6xl">Loading game...</p>}
+            {loading ? <p className="text-6xl">Loading game...</p> : null}
 
-            {gameState?.playState === 'waiting_for_players' && (
+            {gameState?.playState === 'finished' ? (
+              <div className="absolute text-6xl">
+                {p1_STATIC.current!.id === gameState.winner
+                  ? p1_STATIC.current?.username
+                  : p2_STATIC.current?.username
+                } has won!
+              </div>
+            ) : null}
+            {gameState?.playState === 'waiting_for_players' ? (
               <div className="absolute text-6xl">Waiting for players...</div>
-            )}
-            {gameState?.playState === 'starting' && (
+            ) : null}
+            {gameState?.playState === 'starting' ? (
               <div className="absolute text-6xl">{preGameCountdown}</div>
-            )}
-            {/** @TODO add check */}
-            {gameState?.playState === 'finished' && (
-              <div className="absolute text-6xl">You won!</div>
-            )}
+            ) : null}
 
             {
-              gameState?.playState === 'playing' && cells.size > 0 &&
-              [...cells.values()].map((cellData, i) => (
-                <Cell
-                  key={i}
-                  x={cellData.x}
-                  y={cellData.y}
-                  cellId={cellData.cellId}
-                  gameState={gameState}
-                  userIsPlayer={userIsPlayer}
-                />
-              ))
+              gameState?.playState !== 'waiting_for_players' &&
+              gameState?.playState !== 'starting' &&
+              cells.size > 0
+                ? [...cells.values()].map((cellData, i) => (
+                  <Cell
+                    key={i}
+                    x={cellData.x}
+                    y={cellData.y}
+                    cellId={cellData.cellId}
+                    gameState={gameState}
+                    userIsPlayer={userIsPlayer}
+                  />
+                ))
+                : null
             }
 
             <canvas
@@ -375,6 +393,8 @@ export type PlayerHitCellData = {
   xoState: SerializedXoState;
   turn: UserId;
   phase: PhaseTypes;
+  playState: PlaystateTypes;
+  winner: null | UserId;
 };
 
 type PlayerConnectUpdateData = {
@@ -386,6 +406,8 @@ type UserJoinedData = {
   game: GameStateServerGame;
   players: Record<UserId, GameStateServerPlayer>;
 };
+
+type PlaystateUpdateData = PlaystateTypes;
 
 type UserLeftData = {
   userId: UserId;
@@ -418,6 +440,7 @@ export type GameStateServerGame = {
   players: { 1: UserId; 2: UserId };
   xoState: [CellId, XoState][];
   ball: BallState;
+  winner: null | UserId;
 };
 
 export type GameStateResponse = {

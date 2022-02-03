@@ -266,20 +266,22 @@ class Game {
   };
 
   #updatePositions = () => {
-    if (this.gameState.playState !== 'playing') {
+    if (!(['finished', 'playing'] as PlaystateTypes[]).includes(this.gameState.playState)) {
       return;
     }
 
     // PLAYERS
-    for (const playerId of Object.keys(this.#players)) {
-      let next = this.#players[playerId].y;
+    if (this.gameState.playState === 'playing') {
+      for (const playerId of Object.keys(this.#players)) {
+        let next = this.#players[playerId].y;
 
-      if (this.#players[playerId].direction != null) {
-        next = this.#players[playerId].y + this.#players[playerId].speed.y;
-      }
+        if (this.#players[playerId].direction != null) {
+          next = this.#players[playerId].y + this.#players[playerId].speed.y;
+        }
 
-      if (next >= 0 && next <= FIELD_HEIGHT - PLR_HEIGHT) {
-        this.#players[playerId].y = next;
+        if (next >= 0 && next <= FIELD_HEIGHT - PLR_HEIGHT) {
+          this.#players[playerId].y = next;
+        }
       }
     }
 
@@ -288,7 +290,9 @@ class Game {
       return;
     }
 
-    const mod = this.gameState.phase === 'xo' ? BALL_SPEED_MOD : 1;
+    const mod = (this.gameState.phase === 'xo' || this.gameState.playState === 'finished')
+      ? BALL_SPEED_MOD
+      : 1;
 
     let changed = false;
     this.#ball.position.x += mod * this.#ball.speed.x;
