@@ -17,6 +17,9 @@ import isServer from 'utils/isServer';
 import Cell from './Cell';
 
 
+const PICK_TIMER = Number(process.env.NEXT_PUBLIC_GAME_PICK_TIMER);
+
+
 const GameLobby: React.VFC<Props> = (props) => {
   const { getItem } = useLocalStorage();
   const { query } = useRouter();
@@ -34,12 +37,19 @@ const GameLobby: React.VFC<Props> = (props) => {
       return acc;
     }, {}),
   );
-  const [countdown, setCountdown] = React.useState(3);
   const [cells, setCells] = React.useState<Map<CellId, FieldCellState>>(new Map());
+  const [preGameCountdown, setPreGameCountdown] = React.useState(3);
+  const [pickCountdown, setPickCountdown] = React.useState(-1);
 
   // Never use these for changing values
   const p1_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[1]));
   const p2_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[2]));
+
+  useInterval(() => {
+    if (gameState.phase === 'xo' && pickCountdown > 0) {
+      setPickCountdown((n) => n - 1);
+    }
+  }, 1000);
 
   React.useEffect(() => {
     if (isServer) {
@@ -87,11 +97,13 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     socket.on('game-playstate-update', (update: PlaystateTypes) => {
       if (update === 'starting') {
-        doCountdown();
+        doPregameCountdown();
         gameRef.current!.initBall();
       }
 
       if (update === 'playing') {
+        setPickCountdown(PICK_TIMER);
+
         gameRef.current!.launchBall();
       }
 
@@ -121,6 +133,8 @@ const GameLobby: React.VFC<Props> = (props) => {
         draft.turn = data.turn;
         draft.phase = data.phase;
       });
+
+      setPickCountdown(PICK_TIMER);
     });
 
     return function cleanup() {
@@ -138,16 +152,16 @@ const GameLobby: React.VFC<Props> = (props) => {
       return;
     }
 
-    if (countdown <= 0) {
+    if (preGameCountdown <= 0) {
       socket.emit('game-playstate-update', {
         gameId: (query as Queries).gameId,
         playState: 'playing',
       });
     }
-    else if (countdown < 3) {
-      doCountdown();
+    else if (preGameCountdown < 3) {
+      doPregameCountdown();
     }
-  }, [countdown, gameState]);
+  }, [preGameCountdown, gameState]);
 
   React.useEffect(() => {
     if (gameRef.current) {
@@ -155,11 +169,37 @@ const GameLobby: React.VFC<Props> = (props) => {
     }
   }, [gameRef.current, cells]);
 
-  function doCountdown() {
+  function doPregameCountdown() {
     setTimeout(() => {
-      setCountdown((n) => n - 1);
+      setPreGameCountdown((n) => n - 1);
     }, 1000);
   }
+
+  React.useEffect(() => {
+    if (gameState.phase !== 'xo' || gameState.playState !== 'playing') {
+      return;
+    }
+
+    if (pickCountdown !== 0) {
+      return;
+    }
+
+    const freeCells = [...gameState.xoState.values()].filter((cell) => {
+      return cell.state == null;
+    });
+    const rnd = Math.floor(Math.random() * freeCells.length);
+    const cell = freeCells[rnd];
+
+    if (cell) {
+      socket.emit('player-select-cell', {
+        gameId: query.gameId,
+        userId: user?.id,
+        cellId: cell.cellId,
+      });
+    }
+
+    setPickCountdown(-1);
+  }, [gameState, pickCountdown]);
 
   return (
     <div className="text-primary-500">
@@ -176,8 +216,8 @@ const GameLobby: React.VFC<Props> = (props) => {
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               )}
             </span>
-            <span className="flex justify-center flex-1">
-              0 - 0
+            <span className="flex justify-center flex-1 text-4xl">
+              {gameState.phase === 'xo' && pickCountdown > 0 ? pickCountdown : null}
             </span>
             <span
               className={classNames(
@@ -202,7 +242,7 @@ const GameLobby: React.VFC<Props> = (props) => {
               <div className="absolute text-6xl">Waiting for players...</div>
             )}
             {gameState?.playState === 'starting' && (
-              <div className="absolute text-6xl">{countdown}</div>
+              <div className="absolute text-6xl">{preGameCountdown}</div>
             )}
             {/** @TODO add check */}
             {gameState?.playState === 'finished' && (
@@ -242,6 +282,29 @@ const GameLobby: React.VFC<Props> = (props) => {
     </div>
   );
 };
+
+function useInterval(callback: () => void, delay: number | null) {
+  const savedCallback = React.useRef(callback);
+
+  // Remember the latest callback if it changes.
+  React.useLayoutEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  // Set up the interval.
+  React.useEffect(() => {
+    // Don't schedule if no delay is specified.
+    // Note: 0 is a valid value for delay.
+    if (!delay && delay !== 0) {
+      return;
+    }
+
+    const id = setInterval(() => savedCallback.current(), delay);
+
+    return () => clearInterval(id);
+  }, [delay]);
+}
+
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   /** @TODO Move this logic */
