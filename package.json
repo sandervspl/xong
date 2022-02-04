@@ -12,7 +12,9 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "fauna:upload": "node scripts/faunaUpload.js",
-    "postinstall": "npm run --prefix ./apps/web gql:gen"
+    "postinstall": "npm run --prefix ./apps/web gql:gen",
+    "start": "node ./apps/game-server/dist/index.js",
+    "heroku-postbuild": "npx turbo run build --scope=server --include-dependencies --no-deps"
   },
   "devDependencies": {
     "@types/express": "4.17.13",
