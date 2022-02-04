@@ -1,13 +1,13 @@
 # XONG
 
-This monorepo uses [turborepo](https://turborepo.org/) and [pnpm](https://pnpm.io) as a packages manager.
+This monorepo uses [turborepo](https://turborepo.org/).
 
 ### Build
 
 To build all apps and packages, run the following command:
 
 ```sh
-pnpm run build
+npm run build
 ```
 
 ### Develop
@@ -15,5 +15,5 @@ pnpm run build
 To develop all apps and packages, run the following command:
 
 ```sh
-pnpm run dev
+npm run dev
 ```
