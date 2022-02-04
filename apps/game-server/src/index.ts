@@ -1,4 +1,5 @@
 import http from 'http';
+import * as c from '@xong/constants';
 import express from 'express';
 import cors from 'cors';
 import { Server } from 'socket.io';
@@ -77,7 +78,7 @@ io.on('connect', (socket) => {
         });
 
         socket.leave(plr.gameId);
-        socket.to(plr.gameId).emit('player-connect-update', {
+        socket.to(plr.gameId).emit(c.PLAYER_CONNECT_UPDATE, {
           userId: plr.id,
           connected: false,
         });

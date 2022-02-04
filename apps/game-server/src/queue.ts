@@ -1,4 +1,5 @@
 import type { Socket } from 'socket.io';
+import * as c from '@xong/constants';
 import axios from 'axios';
 
 import state, { defaultPlrState } from './state';
@@ -10,7 +11,7 @@ let timeout: NodeJS.Timeout | null = null;
 let processing = false;
 
 export default async function queueActions(socket: Socket) {
-  socket.on('queue', async (data: string) => {
+  socket.on(c.QUEUE, async (data: string) => {
     state.queue.push({ userId: data, socket });
     logQueue();
 
@@ -52,8 +53,8 @@ async function processQueue() {
     state.queue.shift();
 
     // Let users know their game is being created
-    p1?.socket.emit('game-ready');
-    p2?.socket.emit('game-ready');
+    p1?.socket.emit(c.GAME_READY);
+    p2?.socket.emit(c.GAME_READY);
 
     // Add game create request to array to resolve later
     createGameRequests.push(
@@ -65,7 +66,7 @@ async function processQueue() {
 
         if (!game) {
           for (const plr of [p1, p2]) {
-            return plr.socket.emit('game-create-fail');
+            return plr.socket.emit(c.GAME_CREATE_FAIL);
           }
         }
 
@@ -121,8 +122,8 @@ async function processQueue() {
 
         // Emit Game Ready to users
         setTimeout(() => {
-          p1?.socket.emit('game-created', game.data._id);
-          p2?.socket.emit('game-created', game.data._id);
+          p1?.socket.emit(c.GAME_CREATED, game.data._id);
+          p2?.socket.emit(c.GAME_CREATED, game.data._id);
 
           // console.info('New game created', {
           //   p1: p1?.userId,

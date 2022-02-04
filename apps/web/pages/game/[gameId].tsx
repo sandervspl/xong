@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as c from '@xong/constants';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -58,12 +59,12 @@ const GameLobby: React.VFC<Props> = (props) => {
       return;
     }
 
-    socket.emit('user-joined-game', {
+    socket.emit(c.USER_JOINED_GAME, {
       userId: user?.id,
       gameId: (query as Queries).gameId,
     });
 
-    socket.on('user-joined-game', (data: UserJoinedData) => {
+    socket.on(c.USER_JOINED_GAME, (data: UserJoinedData) => {
       console.info('Connected to game lobby!');
 
       gameRef.current = new Game(
@@ -89,7 +90,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       setLoading(false);
     });
 
-    socket.on('user-left-game', (data: UserLeftData) => {
+    socket.on(c.USER_LEFT_GAME, (data: UserLeftData) => {
       if (data.isPlayer) {
         setGameState((draft) => {
           draft.playState = 'finished';
@@ -99,7 +100,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       gameRef.current!.gameState.playState = 'finished';
     });
 
-    socket.on('game-playstate-update', (data: PlaystateUpdateData) => {
+    socket.on(c.GAME_PLAYSTATE_UPDATE, (data: PlaystateUpdateData) => {
       if (data === 'starting') {
         doPregameCountdown();
         gameRef.current!.initBall();
@@ -117,13 +118,13 @@ const GameLobby: React.VFC<Props> = (props) => {
       gameRef.current!.gameState.playState = data;
     });
 
-    socket.on('player-connect-update', (update: PlayerConnectUpdateData) => {
+    socket.on(c.PLAYER_CONNECT_UPDATE, (update: PlayerConnectUpdateData) => {
       setPlayersState((draft) => {
         draft[update.userId].connected = update.connected;
       });
     });
 
-    socket.on('player-select-cell', (data: PlayerSelectCellData) => {
+    socket.on(c.PLAYER_SELECT_CELL, (data: PlayerSelectCellData) => {
       setGameState((draft) => {
         draft.xoState = new Map(data.xoState);
         draft.phase = data.phase;
@@ -132,7 +133,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       gameRef.current!.gameState.phase = data.phase;
     });
 
-    socket.on('player-hit-cell', (data: PlayerHitCellData) => {
+    socket.on(c.PLAYER_HIT_CELL, (data: PlayerHitCellData) => {
       setGameState((draft) => {
         draft.xoState = new Map(data.xoState);
         draft.turn = data.turn;
@@ -153,7 +154,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     return function cleanup() {
       gameRef.current?.unload();
 
-      socket.emit('user-left-game', {
+      socket.emit(c.USER_LEFT_GAME, {
         userId: user?.id,
         gameId: (query as Queries).gameId,
       });
@@ -166,7 +167,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     }
 
     if (preGameCountdown <= 0) {
-      socket.emit('game-playstate-update', {
+      socket.emit(c.GAME_PLAYSTATE_UPDATE, {
         gameId: (query as Queries).gameId,
         playState: 'playing',
       });
@@ -204,7 +205,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     const cell = freeCells[rnd];
 
     if (cell) {
-      socket.emit('player-select-cell', {
+      socket.emit(c.PLAYER_SELECT_CELL, {
         gameId: query.gameId,
         userId: user?.id,
         cellId: cell.cellId,

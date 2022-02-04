@@ -1,5 +1,5 @@
 import type { Socket } from 'socket.io-client';
-import { PLAYER_HIT_CELL } from '@xong/constants';
+import * as c from '@xong/constants';
 import type * as React from 'react';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
@@ -81,7 +81,7 @@ class Game {
       document.addEventListener('keyup', this.#onKeyUp);
     }
 
-    socket.on('player-key-down', (data: PlayerKeypressData) => {
+    socket.on(c.PLAYER_KEY_DOWN, (data: PlayerKeypressData) => {
       if (data.userId !== this.#user?.id) {
         this.#players[data.userId].direction = data.direction;
         this.#players[data.userId].speed.y = data.direction === 'down'
@@ -90,7 +90,7 @@ class Game {
       }
     });
 
-    socket.on('player-key-up', (data: PlayerKeypressUpData) => {
+    socket.on(c.PLAYER_KEY_UP, (data: PlayerKeypressUpData) => {
       this.#players[data.userId].y = data.y;
 
       if (data.userId !== this.#user?.id) {
@@ -104,13 +104,13 @@ class Game {
       }
     });
 
-    socket.on('ball-hit-object', (data: BallHitObjectData) => {
+    socket.on(c.BALL_HIT_OBJECT, (data: BallHitObjectData) => {
       this.#ball = data.ball;
     });
 
-    socket.on('player-select-cell', (data: PlayerSelectCellData) => {
+    socket.on(c.PLAYER_SELECT_CELL, (data: PlayerSelectCellData) => {
       if (!this.cells) {
-        console.error('ERR "player-select-cell": no cells');
+        console.error(`ERR "${c.PLAYER_SELECT_CELL}": no cells`);
         return;
       }
 
@@ -130,9 +130,9 @@ class Game {
       }
     });
 
-    socket.on(PLAYER_HIT_CELL, (data: PlayerHitCellData) => {
+    socket.on(c.PLAYER_HIT_CELL, (data: PlayerHitCellData) => {
       if (!this.cells) {
-        console.error(`ERR "${PLAYER_HIT_CELL}": no cells`);
+        console.error(`ERR "${c.PLAYER_HIT_CELL}": no cells`);
         return;
       }
 
@@ -140,7 +140,7 @@ class Game {
         const curCellState = this.cells.get(cellId);
 
         if (!curCellState) {
-          console.error(`ERR "${PLAYER_HIT_CELL}": no cell`);
+          console.error(`ERR "${c.PLAYER_HIT_CELL}": no cell`);
           return;
         }
 
@@ -242,7 +242,7 @@ class Game {
     if (this.#user) {
       const nextDirection = this.#updateDirection();
 
-      this.#socket.emit('player-key-down', {
+      this.#socket.emit(c.PLAYER_KEY_DOWN, {
         gameId: this.gameState.id,
         userId: this.#user.id,
         direction: nextDirection,
@@ -258,7 +258,7 @@ class Game {
     if (this.#user) {
       const nextDirection = this.#updateDirection();
 
-      this.#socket.emit('player-key-up', {
+      this.#socket.emit(c.PLAYER_KEY_UP, {
         gameId: this.gameState.id,
         userId: this.#user.id,
         y: this.#players[this.#user.id].y,
@@ -408,7 +408,7 @@ class Game {
     }
 
     if (changed) {
-      this.#socket.emit('ball-hit-object', {
+      this.#socket.emit(c.BALL_HIT_OBJECT, {
         gameId: this.gameState.id,
         ball: this.#ball,
       });
@@ -441,7 +441,7 @@ class Game {
         state: 'captured',
       });
 
-      this.#socket.emit(PLAYER_HIT_CELL, {
+      this.#socket.emit(c.PLAYER_HIT_CELL, {
         gameId: this.gameState.id,
         userId: this.#user?.id,
         cellId: hitCell.cellId,

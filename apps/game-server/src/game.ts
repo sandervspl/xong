@@ -1,4 +1,4 @@
-import { PLAYER_HIT_CELL } from '@xong/constants';
+import * as c from '@xong/constants';
 import type { Server, Socket } from 'socket.io';
 
 import type { CellId, Direction, GameId, GamePhase, GameState, UserId } from './state';
@@ -6,7 +6,7 @@ import state, { deleteGame } from './state';
 
 
 export default async function gameActions(socket: Socket, io: Server) {
-  socket.on('user-joined-game', (data: UserJoinedGameData) => {
+  socket.on(c.USER_JOINED_GAME, (data: UserJoinedGameData) => {
     // console.info('user joined a game', data);
 
     // Join game room
@@ -16,7 +16,7 @@ export default async function gameActions(socket: Socket, io: Server) {
     const game = gstate.records.get(data.gameId);
 
     if (!game) {
-      console.error('ERR "user-joined-game": No game found', data, { game, state: [...gstate.records] });
+      console.error(`ERR "${c.USER_JOINED_GAME}": No game found`, data, { game, state: [...gstate.records] });
       return;
     }
 
@@ -27,7 +27,7 @@ export default async function gameActions(socket: Socket, io: Server) {
     };
 
     // Send game state to user
-    socket.emit('user-joined-game', {
+    socket.emit(c.USER_JOINED_GAME, {
       game: {
         ...game,
         xoState: [...game.xoState], // Serialize map to array
@@ -40,7 +40,7 @@ export default async function gameActions(socket: Socket, io: Server) {
       const player = pstate.records.get(data.userId);
 
       if (!player) {
-        console.error('ERR "user-joined-game": No player found for game', data, { player });
+        console.error(`ERR "${c.USER_JOINED_GAME}": No player found for game`, data, { player });
         return;
       }
 
@@ -51,7 +51,7 @@ export default async function gameActions(socket: Socket, io: Server) {
         gameId: data.gameId,
       });
 
-      io.to(data.gameId).emit('player-connect-update', {
+      io.to(data.gameId).emit(c.PLAYER_CONNECT_UPDATE, {
         userId: data.userId,
         connected: true,
       });
@@ -60,13 +60,13 @@ export default async function gameActions(socket: Socket, io: Server) {
       const plrState = state.players.getState().records;
 
       if (!gameState) {
-        console.error('ERR "user-joined-game": No game found', data, { gameState });
+        console.error(`ERR "${c.USER_JOINED_GAME}": No game found`, data, { gameState });
         return;
       }
 
       const [p1Id, p2Id] = Object.values(gameState.players);
       if (!p1Id || !p2Id) {
-        console.error('ERR "user-joined-game": No player found', data, { p1Id, p2Id });
+        console.error(`ERR "${c.USER_JOINED_GAME}": No player found`, data, { p1Id, p2Id });
         return;
       }
 
@@ -79,12 +79,12 @@ export default async function gameActions(socket: Socket, io: Server) {
           playState: next,
         });
 
-        io.to(data.gameId).emit('game-playstate-update', next);
+        io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, next);
       }
     }
   });
 
-  socket.on('user-left-game', (data: UserLeftGameData) => {
+  socket.on(c.USER_LEFT_GAME, (data: UserLeftGameData) => {
     socket.leave(data.gameId);
 
     const gstate = state.games.getState();
@@ -102,28 +102,28 @@ export default async function gameActions(socket: Socket, io: Server) {
       deleteGame(data.gameId);
     }
 
-    io.to(data.gameId).emit('user-left-game', {
+    io.to(data.gameId).emit(c.USER_LEFT_GAME, {
       userId: data.userId,
       isPlayer,
       reason,
     });
   });
 
-  socket.on('game-playstate-update', (data: GamePlayStateData) => {
+  socket.on(c.GAME_PLAYSTATE_UPDATE, (data: GamePlayStateData) => {
     state.games.getState().records.set(data.gameId, {
       ...state.games.getState().records.get(data.gameId)!,
       playState: data.playState,
     });
 
-    io.to(data.gameId).emit('game-playstate-update', data.playState);
+    io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, data.playState);
   });
 
-  socket.on('player-key-down', (data: KeypressData) => {
+  socket.on(c.PLAYER_KEY_DOWN, (data: KeypressData) => {
     const game = state.games.getState().records.get(data.gameId);
     const player = state.players.getState().records.get(data.userId);
 
     if (!game || !player || !state.games.getState().isUserPlayer(data.gameId, data.userId)) {
-      console.error('ERR "player-key-down": no game or player found', data, { game, player });
+      console.error(`ERR "${c.PLAYER_KEY_DOWN}": no game or player found`, data, { game, player });
       return;
     }
 
@@ -133,18 +133,18 @@ export default async function gameActions(socket: Socket, io: Server) {
     });
 
     // only seems to work if I emit from server, not socket
-    io.to(data.gameId).emit('player-key-down', {
+    io.to(data.gameId).emit(c.PLAYER_KEY_DOWN, {
       userId: data.userId,
       direction: data.direction,
     });
   });
 
-  socket.on('player-key-up', (data: KeypressDataUp) => {
+  socket.on(c.PLAYER_KEY_UP, (data: KeypressDataUp) => {
     const game = state.games.getState().records.get(data.gameId);
     const player = state.players.getState().records.get(data.userId);
 
     if (!game || !player || !state.games.getState().isUserPlayer(data.gameId, data.userId)) {
-      console.error('ERR "player-key-up": no game or player found', data, { game, player });
+      console.error(`ERR ${c.PLAYER_KEY_UP}: no game or player found`, data, { game, player });
       return;
     }
 
@@ -155,23 +155,23 @@ export default async function gameActions(socket: Socket, io: Server) {
     });
 
     // only seems to work if I emit from server, not socket
-    io.to(data.gameId).emit('player-key-up', {
+    io.to(data.gameId).emit(c.PLAYER_KEY_UP, {
       userId: data.userId,
       direction: data.direction,
       y: data.y,
     });
   });
 
-  socket.on('player-select-cell', (data: SelectCellData) => {
+  socket.on(c.PLAYER_SELECT_CELL, (data: SelectCellData) => {
     const game = state.games.getState().records.get(data.gameId);
     if (!game || state.games.getState().isUserPlayer(data.userId, data.userId)) {
-      console.error('ERR "player-select-cell": no game found', data, { game });
+      console.error(`ERR "${c.PLAYER_SELECT_CELL}": no game found`, data, { game });
       return;
     }
 
     const plr = state.players.getState().records.get(game.turn);
     if (!plr) {
-      console.error('ERR "player-select-cell": no player found', data);
+      console.error(`ERR "${c.PLAYER_SELECT_CELL}": no player found`, data);
       return;
     }
 
@@ -198,19 +198,19 @@ export default async function gameActions(socket: Socket, io: Server) {
       phase: nextPhase,
     });
 
-    io.to(data.gameId).emit('player-select-cell', {
+    io.to(data.gameId).emit(c.PLAYER_SELECT_CELL, {
       xoState: [...nextXoState],
       phase: nextPhase,
     });
   });
 
-  socket.on(PLAYER_HIT_CELL, (data: HitCellData) => {
+  socket.on(c.PLAYER_HIT_CELL, (data: HitCellData) => {
     const gstate = state.games.getState();
     const pstate = state.players.getState();
     const game = gstate.records.get(data.gameId);
 
     if (!game) {
-      console.error(`ERR "${PLAYER_HIT_CELL}": no game found`, data);
+      console.error(`ERR "${c.PLAYER_HIT_CELL}": no game found`, data);
       return;
     }
 
@@ -223,7 +223,7 @@ export default async function gameActions(socket: Socket, io: Server) {
     const curState = game.xoState.get(data.cellId);
 
     if (!curState || !curState.user) {
-      console.error(`ERR ${PLAYER_HIT_CELL}: no curstate found`, data);
+      console.error(`ERR ${c.PLAYER_HIT_CELL}: no curstate found`, data);
       return;
     }
 
@@ -283,7 +283,7 @@ export default async function gameActions(socket: Socket, io: Server) {
     gstate.records.set(data.gameId, nextGameState);
 
     // Emit to users
-    io.to(data.gameId).emit(PLAYER_HIT_CELL, {
+    io.to(data.gameId).emit(c.PLAYER_HIT_CELL, {
       xoState: [...nextXoState],
       turn: nextGameState.turn,
       phase: nextGameState.phase,
@@ -292,12 +292,12 @@ export default async function gameActions(socket: Socket, io: Server) {
     });
   });
 
-  socket.on('ball-hit-object', (data: BallHitObjectData) => {
+  socket.on(c.BALL_HIT_OBJECT, (data: BallHitObjectData) => {
     const gstate = state.games.getState();
     const game = gstate.records.get(data.gameId);
 
     if (!game) {
-      // console.error('ERR "ball-hit-object": no game found', data);
+      // console.error(`ERR ${c.BALL_HIT_OBJECT}: no game found`, data);
       return;
     }
 
@@ -308,7 +308,7 @@ export default async function gameActions(socket: Socket, io: Server) {
       ball: nextBall,
     });
 
-    io.to(data.gameId).emit('ball-hit-object', {
+    io.to(data.gameId).emit(c.BALL_HIT_OBJECT, {
       ball: nextBall,
     });
   });

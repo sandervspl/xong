@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as c from '@xong/constants';
 import axios from 'axios';
 import { useMutation } from 'react-query';
 import { useRouter } from 'next/router';
@@ -63,19 +64,19 @@ export default function Page() {
         });
 
         // Add user to waiting room
-        socket.emit('queue', user._id);
+        socket.emit(c.QUEUE, user._id);
         setWaitState('waiting');
 
         console.info('Waiting for game...');
 
         // Listen to game creation updates
-        socket.on('game-ready', (data) => {
+        socket.on(c.GAME_READY, (data) => {
           console.info('game ready!', data);
           setWaitState('ready');
         });
 
         // Game ready, navigate to game
-        socket.on('game-created', (gameId) => {
+        socket.on(c.GAME_CREATED, (gameId) => {
           setWaitState('created');
 
           setTimeout(() => {

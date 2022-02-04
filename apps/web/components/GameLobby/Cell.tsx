@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as c from '@xong/constants';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
 
@@ -20,7 +21,7 @@ const Cell: React.VFC<Props> = (props) => {
 
   function handleClick() {
     if (isPickPhase) {
-      socket.emit('player-select-cell', {
+      socket.emit(c.PLAYER_SELECT_CELL, {
         gameId: query.gameId,
         userId: user?.id,
         cellId: props.cellId,
