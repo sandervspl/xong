@@ -45,3 +45,5 @@ schema.graphql
 
 # Local Netlify folder
 .netlify
+
+.vercel
