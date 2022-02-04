@@ -38,6 +38,7 @@ dist/
 .faunarc
 **/faunadb/generated.ts
 schema.graphql
+links.md
 
 # vercel
 .vercel
