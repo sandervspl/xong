@@ -338,9 +338,17 @@ const GameLobby: React.VFC<Props> = (props) => {
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   /** @TODO Move this logic */
-  const host = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:5000'
-    : 'https://xong-game-server.herokuapp.com';
+  const host = (() => {
+    if (process.env.NODE_ENV === 'development') {
+      return 'http://localhost:5000';
+    }
+
+    if (process.env.APP_ENV === 'staging') {
+      return 'https://develop--xong-game-server.herokuapp.com';
+    }
+
+    return 'https://xong-game-server.herokuapp.com';
+  })();
 
   const response = await axios.get<GameStateResponse>(`${host}/game/${ctx.query.gameId}`);
   const gameDB = await sdk.GetGameById({ id: ctx.query.gameId as string });
