@@ -31,10 +31,6 @@ yarn-error.log*
 # turbo
 .turbo
 
-# netlify
-package-lock.json
-yarn.lock
-
 # xong
 dist/
 .env.local
@@ -43,5 +39,5 @@ dist/
 **/faunadb/generated.ts
 schema.graphql
 
-# Local Netlify folder
-.netlify
+# vercel
+.vercel

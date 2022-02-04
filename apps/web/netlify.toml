@@ -1,8 +1,0 @@
-[build.environment]
-  NEXT_PUBLIC_WEBSOCKET_URL="https://xong-game-server.herokuapp.com"
-
-[context.develop.environment]
-  NEXT_PUBLIC_WEBSOCKET_URL="https://develop--xong-game-server.herokuapp.com"
-
-[[plugins]]
-  package="@netlify/plugin-nextjs"
