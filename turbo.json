@@ -8,6 +8,7 @@
       "dependsOn": [
         "^build",
         "$FAUNA_CLIENT_SECRET",
+        "$APP_ENV",
         "$NEXT_PUBLIC_GAME_FIELD_HEIGHT",
         "$NEXT_PUBLIC_GAME_FIELD_WIDTH",
         "$NEXT_PUBLIC_GAME_XO_SQUARE_SIZE",
