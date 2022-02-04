@@ -1,6 +1,7 @@
+import { PLAYER_HIT_CELL } from '@xong/constants';
 import type { Server, Socket } from 'socket.io';
 
-import type { CellId, Direction, GameId, GamePhase, GamePlayState, GameState, PlayerState, UserId } from './state';
+import type { CellId, Direction, GameId, GamePhase, GameState, UserId } from './state';
 import state, { deleteGame } from './state';
 
 
@@ -203,13 +204,13 @@ export default async function gameActions(socket: Socket, io: Server) {
     });
   });
 
-  socket.on('player-hit-cell', (data: HitCellData) => {
+  socket.on(PLAYER_HIT_CELL, (data: HitCellData) => {
     const gstate = state.games.getState();
     const pstate = state.players.getState();
     const game = gstate.records.get(data.gameId);
 
     if (!game) {
-      console.error('ERR "player-hit-cell": no game found', data);
+      console.error(`ERR "${PLAYER_HIT_CELL}": no game found`, data);
       return;
     }
 
@@ -222,7 +223,7 @@ export default async function gameActions(socket: Socket, io: Server) {
     const curState = game.xoState.get(data.cellId);
 
     if (!curState || !curState.user) {
-      console.error('ERR player-hit-cell: no curstate found', data);
+      console.error(`ERR ${PLAYER_HIT_CELL}: no curstate found`, data);
       return;
     }
 
@@ -282,7 +283,7 @@ export default async function gameActions(socket: Socket, io: Server) {
     gstate.records.set(data.gameId, nextGameState);
 
     // Emit to users
-    io.to(data.gameId).emit('player-hit-cell', {
+    io.to(data.gameId).emit(PLAYER_HIT_CELL, {
       xoState: [...nextXoState],
       turn: nextGameState.turn,
       phase: nextGameState.phase,

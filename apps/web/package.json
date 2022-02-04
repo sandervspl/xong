@@ -13,6 +13,7 @@
     "gql:dev": "APP_ENV=development npm run gql:gen"
   },
   "dependencies": {
+    "@xong/constants": "*",
     "classnames": "2.3.1",
     "faunadb": "4.4.1",
     "graphql": "16.3.0",
@@ -27,6 +28,7 @@
     "use-immer": "0.6.0"
   },
   "devDependencies": {
+    "@xong/types": "*",
     "@graphql-codegen/cli": "2.4.0",
     "@graphql-codegen/schema-ast": "2.4.1",
     "@graphql-codegen/typescript": "2.4.2",

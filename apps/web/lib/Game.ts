@@ -1,4 +1,6 @@
 import type { Socket } from 'socket.io-client';
+import { PLAYER_HIT_CELL } from '@xong/constants';
+import type * as React from 'react';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
 import type {
@@ -128,9 +130,9 @@ class Game {
       }
     });
 
-    socket.on('player-hit-cell', (data: PlayerHitCellData) => {
+    socket.on(PLAYER_HIT_CELL, (data: PlayerHitCellData) => {
       if (!this.cells) {
-        console.error('ERR "player-hit-cell": no cells');
+        console.error(`ERR "${PLAYER_HIT_CELL}": no cells`);
         return;
       }
 
@@ -138,7 +140,7 @@ class Game {
         const curCellState = this.cells.get(cellId);
 
         if (!curCellState) {
-          console.error('ERR "player-hit-cell": no cell');
+          console.error(`ERR "${PLAYER_HIT_CELL}": no cell`);
           return;
         }
 
@@ -439,7 +441,7 @@ class Game {
         state: 'captured',
       });
 
-      this.#socket.emit('player-hit-cell', {
+      this.#socket.emit(PLAYER_HIT_CELL, {
         gameId: this.gameState.id,
         userId: this.#user?.id,
         cellId: hitCell.cellId,
