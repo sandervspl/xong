@@ -39,7 +39,5 @@ dist/
 **/faunadb/generated.ts
 schema.graphql
 
-# Local Netlify folder
-.netlify
-
+# vercel
 .vercel
