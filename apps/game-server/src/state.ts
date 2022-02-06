@@ -1,3 +1,4 @@
+import type * as i from '@xong/types';
 import type { Socket } from 'socket.io';
 import type { StoreApi } from 'zustand/vanilla';
 import create from 'zustand/vanilla';
@@ -53,17 +54,28 @@ export function deleteGame(gameId: string, timer = 5 * 60 * 1000): void {
   }, timer);
 }
 
-export const defaultPlrState: Omit<PlayerState, 'id' | 'gameId' | 'mark' | 'num'> = {
+export const defaultPlrState: Omit<i.PlayerState, 'id' | 'gameId' | 'mark' | 'num'> = {
   y: 0,
   direction: null,
   connected: false,
   socketId: '',
 };
 
+export default state;
 
 export type Queue = {
   userId: string;
   socket: Socket;
+};
+
+type GamesSlice = {
+  records: Map<i.GameId, i.GameState>;
+  isUserPlayer(gameId: i.GameId, userId: i.UserId): boolean;
+  delete(gameId: i.GameId): void;
+};
+
+type PlayersSlice = {
+  records: Map<i.UserId, i.PlayerState>;
 };
 
 export type State = {
@@ -72,55 +84,3 @@ export type State = {
   players: StoreApi<PlayersSlice>;
 };
 
-export type GameId = string;
-export type UserId = string;
-export type CellId = string;
-export type Mark = 'x' | 'o';
-export type Direction = null | 'up' | 'down';
-export type GamePhase = 'xo' | 'pong';
-export type GamePlayState = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
-
-export type XoState = {
-  cellId: CellId;
-  mark: null | Mark;
-  state: null | 'selected' | 'captured';
-  user: null | UserId;
-};
-
-export type BallState = {
-  position: { x: number; y: number };
-  speed: { x: number; y: number };
-};
-
-export type GameState = {
-  id: GameId;
-  turn: string;
-  playState: GamePlayState;
-  phase: GamePhase;
-  players: { 1: UserId; 2: UserId; };
-  xoState: Map<CellId, XoState>;
-  ball: BallState;
-  winner: null | UserId;
-};
-
-type GamesSlice = {
-  records: Map<GameId, GameState>;
-  isUserPlayer(gameId: GameId, userId: UserId): boolean;
-  delete(gameId: GameId): void;
-};
-
-type PlayersSlice = {
-  records: Map<UserId, PlayerState>;
-};
-
-export type PlayerState = {
-  id: UserId;
-  gameId: GameId;
-  y: number;
-  direction: Direction;
-  connected: boolean;
-  socketId: string;
-  mark: Mark;
-};
-
-export default state;

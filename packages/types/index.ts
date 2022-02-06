@@ -1,1 +1,1 @@
-export type Foo = 'bar';
+export * from './game';

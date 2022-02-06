@@ -1,6 +1,5 @@
+import type * as i from '@xong/types';
 import type { Socket } from 'socket.io';
-
-import type { CellId, GameState, PlayerState, XoState } from './state';
 
 
 export const socketMock = {
@@ -17,7 +16,7 @@ export const socketMock = {
   },
 } as Socket;
 
-export const xoStateInit = new Map<string, XoState>();
+export const xoStateInit = new Map<string, i.XoState>();
 for (let x = 0; x < 3; x++) {
   for (let y = 0; y < 3; y++) {
     const cellId = '' + x + y;
@@ -55,7 +54,7 @@ for (let x = 0; x < 3; x++) {
 //   user: '322526166267200076',
 // });
 
-export const gameMock = new Map<string, GameState>().set('322573768640692812', {
+export const gameMock = new Map<string, i.GameState>().set('322573768640692812', {
   id: '322573768640692812',
   phase: 'xo',
   playState: 'waiting_for_players',
@@ -72,7 +71,7 @@ export const gameMock = new Map<string, GameState>().set('322573768640692812', {
   winner: null,
 });
 
-export const mockPlayers = new Map<string, PlayerState>();
+export const mockPlayers = new Map<string, i.PlayerState>();
 mockPlayers.set('322304205897335372', {
   id: '322304205897335372',
   connected: false,

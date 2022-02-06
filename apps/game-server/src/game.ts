@@ -1,7 +1,7 @@
+import type * as i from '@xong/types';
 import * as c from '@xong/constants';
 import type { Server, Socket } from 'socket.io';
 
-import type { CellId, Direction, GameId, GamePhase, GameState, UserId } from './state';
 import state, { deleteGame } from './state';
 
 
@@ -72,7 +72,7 @@ export default async function gameActions(socket: Socket, io: Server) {
 
       const allConnected = plrState.get(p1Id)?.connected && plrState.get(p2Id)?.connected;
       if (allConnected && gameState.playState !== 'playing') {
-        const next: GameState['playState'] = 'starting';
+        const next: i.GameState['playState'] = 'starting';
 
         state.games.getState().records.set(data.gameId, {
           ...gameState,
@@ -183,7 +183,7 @@ export default async function gameActions(socket: Socket, io: Server) {
       return;
     }
 
-    const nextPhase: GamePhase = 'pong';
+    const nextPhase: i.GamePhase = 'pong';
     const nextXoState = new Map(game.xoState);
     nextXoState.set(data.cellId, {
       cellId: data.cellId,
@@ -241,7 +241,7 @@ export default async function gameActions(socket: Socket, io: Server) {
       ? game.players[2]
       : game.players[1];
 
-    const nextPhase: GamePhase = 'xo';
+    const nextPhase: i.GamePhase = 'xo';
 
     // Check win condition
     const possibilities = [
@@ -267,7 +267,7 @@ export default async function gameActions(socket: Socket, io: Server) {
       });
     }
 
-    const nextGameState: GameState = {
+    const nextGameState: i.GameState = {
       ...game,
       xoState: nextXoState,
       turn: nextTurn,
@@ -315,9 +315,9 @@ export default async function gameActions(socket: Socket, io: Server) {
 }
 
 type KeypressData = {
-  gameId: GameId;
-  userId: UserId;
-  direction: Direction;
+  gameId: i.GameId;
+  userId: i.UserId;
+  direction: i.Direction;
 };
 
 type KeypressDataUp = KeypressData & {
@@ -325,34 +325,34 @@ type KeypressDataUp = KeypressData & {
 };
 
 type UserJoinedGameData = {
-  userId: UserId;
-  gameId: GameId;
+  userId: i.UserId;
+  gameId: i.GameId;
 };
 
 type UserLeftGameData = {
-  userId: UserId;
-  gameId: GameId;
+  userId: i.UserId;
+  gameId: i.GameId;
 };
 
 type SelectCellData = {
-  gameId: GameId;
-  userId: UserId;
-  cellId: CellId;
+  gameId: i.GameId;
+  userId: i.UserId;
+  cellId: i.CellId;
 };
 
 type HitCellData = {
-  gameId: GameId;
-  userId: UserId;
-  cellId: CellId;
+  gameId: i.GameId;
+  userId: i.UserId;
+  cellId: i.CellId;
 };
 
 type GamePlayStateData = {
-  gameId: GameId;
-  playState: GameState['playState'];
+  gameId: i.GameId;
+  playState: i.GameState['playState'];
 };
 
 type BallHitObjectData = {
-  gameId: GameId;
+  gameId: i.GameId;
   ball: {
     position: { x: number; y: number };
     speed: { x: number; y: number };
