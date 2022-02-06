@@ -1,8 +1,9 @@
+import type * as i from '@xong/types';
 import type { Socket } from 'socket.io';
 import * as c from '@xong/constants';
 import axios from 'axios';
 
-import state, { defaultPlrState } from './state';
+import { state, defaultPlrState } from './state';
 import { xoStateInit } from './mocks';
 
 
@@ -71,54 +72,36 @@ async function processQueue() {
         }
 
         // Create game in state
-        state.games.setState((state) => {
-          const clone = new Map(state.records);
-
-          clone.set(game.data._id, {
-            id: game.data._id,
-            turn: p1.userId,
-            playState: 'waiting_for_players',
-            phase: 'xo',
-            players: {
-              1: p1.userId,
-              2: p2.userId,
-            },
-            xoState: xoStateInit,
-            ball: {
-              position: { x: -100, y: -100 },
-              speed: { x: 0, y: 0 },
-            },
-            winner: null,
-          });
-
-          return {
-            ...state,
-            records: clone,
-          };
-        });
+        state.games[game.data._id] = {
+          id: game.data._id,
+          turn: p1.userId,
+          playState: 'waiting_for_players',
+          phase: 'xo',
+          players: {
+            1: p1.userId,
+            2: p2.userId,
+          },
+          xoState: xoStateInit,
+          ball: {
+            position: { x: -100, y: -100 },
+            speed: { x: 0, y: 0 },
+          },
+          winner: null,
+        };
 
         // Upsert users in state
-        state.players.setState((state) => {
-          const clone = new Map(state.records);
-
-          clone.set(p1.userId, {
-            ...defaultPlrState,
-            id: p1.userId,
-            gameId: game.data._id,
-            mark: 'x',
-          });
-          clone.set(p2.userId, {
-            ...defaultPlrState,
-            gameId: game.data._id,
-            id: p2.userId,
-            mark: 'o',
-          });
-
-          return {
-            ...state,
-            records: clone,
-          };
-        });
+        state.players[p1.userId] = {
+          ...defaultPlrState,
+          id: p1.userId,
+          gameId: game.data._id,
+          mark: 'x',
+        };
+        state.players[p2.userId] = {
+          ...defaultPlrState,
+          gameId: game.data._id,
+          id: p2.userId,
+          mark: 'o',
+        };
 
         // Emit Game Ready to users
         setTimeout(() => {

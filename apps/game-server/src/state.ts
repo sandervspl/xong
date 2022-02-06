@@ -1,58 +1,120 @@
 import type * as i from '@xong/types';
 import type { Socket } from 'socket.io';
-import type { StoreApi } from 'zustand/vanilla';
-import create from 'zustand/vanilla';
+import { produce } from 'immer';
 
-import { gameMock, mockPlayers } from 'mocks';
+// import { gameMock, mockPlayers } from 'mocks';
 
+// const initGames = process.env.NODE_ENV === 'development'
+//   ? gameMock
+//   : new Map();
 
-const initGames = process.env.NODE_ENV === 'development'
-  ? gameMock
-  : new Map();
+// const initPlayers = process.env.NODE_ENV === 'development'
+//   ? mockPlayers
+//   : new Map();
 
-const initPlayers = process.env.NODE_ENV === 'development'
-  ? mockPlayers
-  : new Map();
+type PlayerStateUpdater = (plr: i.PlayerState) => void;
+type GameStateUpdater = (gameState: i.GameState) => void;
 
-const state: State = {
+export const state: State = {
   queue: [],
-  games: create<GamesSlice>((set, get) => ({
-    records: initGames,
-    isUserPlayer(gameId: string, userId: string): boolean {
-      const game = get().records.get(gameId);
-
-      if (game) {
-        return Object.values(game.players).includes(userId);
-      }
-
-      return false;
-    },
-    delete(gameId: string): void {
-      get().records.delete(gameId);
-    },
-  })),
-  players: create<PlayersSlice>((set, get) => ({
-    records: initPlayers,
-  })),
+  games: {},
+  players: {},
 };
 
-// 5 minutes
-export function deleteGame(gameId: string, timer = 5 * 60 * 1000): void {
-  setTimeout(() => {
-    state.games.getState().delete(gameId);
+export function getPlayer(id?: i.UserId) {
+  function getState(): i.PlayerState | undefined {
+    return state.players[id || ''];
+  }
 
-    for (const plr of state.players.getState().records.values()) {
-      if (plr.gameId === gameId) {
-        state.players.getState().records.set(plr.id, {
-          ...state.players.getState().records.get(plr.id)!,
-          gameId: '',
-        });
-      }
+  function setState(cb: PlayerStateUpdater) {
+    if (!id) {
+      return;
+    }
+    state.players[id] = produce(state.players[id], cb)!;
+  }
+
+  return {
+    getState,
+    setState,
+  };
+}
+
+export function getGame(id: i.GameId) {
+  function getState() {
+    return state.games[id];
+  }
+
+  function setState(cb: GameStateUpdater) {
+    state.games[id] = produce(state.games[id], cb)!;
+  }
+
+  function isUserPlayer(userId: i.UserId) {
+    return Object.values(state.games[id]?.players || {}).includes(userId);
+  }
+
+  function getPlayers() {
+    const game = state.games[id];
+
+    if (!game) {
+      return [];
     }
 
-    console.info('Game deleted', gameId);
-  }, timer);
+    const plrs = [];
+    for (const id of Object.values(game.players)) {
+      plrs.push(getPlayer(id).getState());
+    }
+
+    return plrs;
+  }
+
+  function remove() {
+    setTimeout(() => {
+      for (const plrId of Object.values(state.games[id]?.players || {})) {
+        const plr = getPlayer(plrId);
+        const pstate = plr.getState();
+        if (!pstate?.connected) {
+          delete state.players[plrId];
+        }
+        else if (pstate?.gameId === id) {
+          plr.setState((draft) => {
+            draft.gameId = '';
+          });
+        }
+      }
+
+      delete state.games[id];
+    }, 5 * 60 * 1000);
+  }
+
+  return {
+    getState,
+    setState,
+    getPlayer,
+    isUserPlayer,
+    getPlayers,
+    remove,
+  };
 }
+
+/** ------------------------- */
+
+// 5 minutes
+// export function deleteGame(gameId: string, timer = 5 * 60 * 1000): void {
+//   setTimeout(() => {
+//     state.games.getState().delete(gameId);
+
+//     for (const plr of state.players.getState().records.values()) {
+//       if (plr.gameId === gameId) {
+//         state.players.getState().records.set(plr.id, {
+//           ...state.players.getState().records.get(plr.id)!,
+//           gameId: '',
+//         });
+//       }
+//     }
+
+//     console.info('Game deleted', gameId);
+//   }, timer);
+// }
 
 export const defaultPlrState: Omit<i.PlayerState, 'id' | 'gameId' | 'mark' | 'num'> = {
   y: 0,
@@ -68,19 +130,12 @@ export type Queue = {
   socket: Socket;
 };
 
-type GamesSlice = {
-  records: Map<i.GameId, i.GameState>;
-  isUserPlayer(gameId: i.GameId, userId: i.UserId): boolean;
-  delete(gameId: i.GameId): void;
-};
-
-type PlayersSlice = {
-  records: Map<i.UserId, i.PlayerState>;
-};
+type GamesSlice = Record<i.GameId, i.GameState>;
+type PlayersSlice = Record<i.UserId, i.PlayerState>;
 
 export type State = {
   queue: Queue[];
-  games: StoreApi<GamesSlice>;
-  players: StoreApi<PlayersSlice>;
+  games: GamesSlice;
+  players: PlayersSlice;
 };
 

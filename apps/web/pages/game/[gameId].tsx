@@ -94,6 +94,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       if (data.isPlayer) {
         setGameState((draft) => {
           draft.playState = 'finished';
+          draft.winner = data.winner;
         });
       }
 
@@ -422,6 +423,7 @@ type UserLeftData = {
   userId: UserId;
   isPlayer: boolean;
   reason: string | null;
+  winner: UserId;
 };
 
 export type XoState = {

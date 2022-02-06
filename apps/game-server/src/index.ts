@@ -1,11 +1,11 @@
 import http from 'http';
+import type * as i from '@xong/types';
 import * as c from '@xong/constants';
 import express from 'express';
 import cors from 'cors';
 import { Server } from 'socket.io';
 
-import type { PlayerState, UserId } from './state';
-import state from './state';
+import { getGame, getPlayer, state } from './state';
 import queueActions from './queue';
 import gameActions from './game';
 
@@ -25,20 +25,21 @@ app.use(cors({
 }));
 
 app.get('/game/:id', (req, res) => {
-  const game = state.games.getState().records.get(req.params.id);
+  const game = getGame(req.params.id);
+  const gstate = game.getState();
 
-  const players: Record<UserId, PlayerState> = {};
-  for (const plr of state.players.getState().records.values()) {
-    if (plr.gameId === req.params.id) {
-      players[plr.id] = state.players.getState().records.get(plr.id)!;
+  const players: Record<i.UserId, i.PlayerState> = {};
+  for (const plr of game.getPlayers()) {
+    if (plr?.gameId === req.params.id) {
+      players[plr.id] = plr;
     }
   }
 
-  if (game) {
+  if (gstate) {
     return res.status(200).json({
       game: {
-        ...game,
-        xoState: [...game.xoState],
+        ...gstate,
+        xoState: [...gstate.xoState],
       },
       players,
     });
@@ -46,7 +47,7 @@ app.get('/game/:id', (req, res) => {
 
   console.error(
     'ERR /game/:id No game found for id',
-    { id: req.params.id, games: [...state.games.getState().records] }
+    { id: req.params.id, games: state.games }
   );
 
   return res.status(404).send();
@@ -67,14 +68,11 @@ io.on('connect', (socket) => {
     // console.info(socket.id, 'disconnected');
     state.queue = state.queue.filter((val) => val.socket.id !== socket.id);
 
-    for (const plr of state.players.getState().records.values()) {
+    for (const plr of Object.values(state.players)) {
       if (plr.socketId === socket.id) {
-        const pstate = state.players.getState();
-
-        pstate.records.set(plr.id, {
-          ...plr,
-          connected: false,
-          socketId: '',
+        getPlayer(plr.id).setState((draft) => {
+          draft.connected = false;
+          draft.socketId = '';
         });
 
         socket.leave(plr.gameId);
