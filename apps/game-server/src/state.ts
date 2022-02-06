@@ -96,26 +96,6 @@ export function getGame(id: i.GameId) {
   };
 }
 
-/** ------------------------- */
-
-// 5 minutes
-// export function deleteGame(gameId: string, timer = 5 * 60 * 1000): void {
-//   setTimeout(() => {
-//     state.games.getState().delete(gameId);
-
-//     for (const plr of state.players.getState().records.values()) {
-//       if (plr.gameId === gameId) {
-//         state.players.getState().records.set(plr.id, {
-//           ...state.players.getState().records.get(plr.id)!,
-//           gameId: '',
-//         });
-//       }
-//     }
-
-//     console.info('Game deleted', gameId);
-//   }, timer);
-// }
-
 export const defaultPlrState: Omit<i.PlayerState, 'id' | 'gameId' | 'mark' | 'num'> = {
   y: 0,
   direction: null,
