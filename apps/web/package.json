@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gql:gen": "DOTENV_CONFIG_PATH=./.env.local graphql-codegen -r dotenv/config -c ../../fauna-sdk.yml",
+    "gql:gen": "DOTENV_CONFIG_PATH=./.env.local npx graphql-codegen -r dotenv/config -c ../../fauna-sdk.yml",
     "gql:dev": "APP_ENV=development npm run gql:gen"
   },
   "dependencies": {
