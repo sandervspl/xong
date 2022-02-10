@@ -17,13 +17,15 @@ export default async function createAPI(app: Express) {
     }
 
     if (gstate) {
-      return res.status(200).json({
+      const data: i.GetGameResult = {
+        players,
         game: {
           ...gstate,
-          xoState: [...gstate.xoState],
+          xoState: [...gstate.xoState], // Serialize map to array
         },
-        players,
-      });
+      };
+
+      return res.status(200).json(data);
     }
 
     console.error(

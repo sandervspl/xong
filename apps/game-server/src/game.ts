@@ -1,7 +1,6 @@
 import type * as i from '@xong/types';
 import * as c from '@xong/constants';
 import type { Server, Socket } from 'socket.io';
-import { produce } from 'immer';
 
 import { state, getGame, getPlayer } from './state';
 
@@ -317,25 +316,25 @@ export default async function gameActions(socket: Socket, io: Server) {
     });
   });
 
-  socket.on(c.BALL_HIT_OBJECT, (data: BallHitObjectData) => {
-    const game = getGame(data.gameId);
-    const gstate = game.getState();
+  // socket.on(c.BALL_HIT_OBJECT, (data: BallHitObjectData) => {
+  //   const game = getGame(data.gameId);
+  //   const gstate = game.getState();
 
-    if (!gstate) {
-      console.error(`ERR ${c.BALL_HIT_OBJECT}: no game found`, data, state.games);
-      return;
-    }
+  //   if (!gstate) {
+  //     console.error(`ERR ${c.BALL_HIT_OBJECT}: no game found`, data, state.games);
+  //     return;
+  //   }
 
-    const nextBall = { ...data.ball };
+  //   const nextBall = { ...data.ball };
 
-    game.setState((draft) => {
-      draft.ball = nextBall;
-    });
+  //   game.setState((draft) => {
+  //     draft.ball = nextBall;
+  //   });
 
-    io.to(data.gameId).emit(c.BALL_HIT_OBJECT, {
-      ball: nextBall,
-    });
-  });
+  //   io.to(data.gameId).emit(c.BALL_HIT_OBJECT, {
+  //     ball: nextBall,
+  //   });
+  // });
 }
 
 type KeypressData = {

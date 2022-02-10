@@ -1,25 +1,14 @@
-import type { Socket } from 'socket.io-client';
+import type * as i from '@xong/types';
 import * as c from '@xong/constants';
+import type { Socket } from 'socket.io-client';
 import type * as React from 'react';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
-import type {
-  GameStateServerGame, GameStateServerPlayer, PlayerHitCellData, PlayerSelectCellData, XoState,
-} from 'pages/game/[gameId]';
+import type { ClientGameState, ClientPlayersState } from 'components/GameLobby/types';
 
 import { theme } from '../tailwind.config.js';
+import type { ClientPlayerState, FieldCellState } from './types';
 
-
-const PLR_WIDTH = Number(process.env.NEXT_PUBLIC_GAME_PLR_WIDTH);
-const PLR_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_PLR_HEIGHT);
-const FIELD_MARGIN = Number(process.env.NEXT_PUBLIC_GAME_FIELD_MARGIN);
-const FIELD_WIDTH = Number(process.env.NEXT_PUBLIC_GAME_FIELD_WIDTH);
-const FIELD_HEIGHT = Number(process.env.NEXT_PUBLIC_GAME_FIELD_HEIGHT);
-const XO_SQUARE_SIZE = Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE);
-const PADDLE_SPEED = Number(process.env.NEXT_PUBLIC_GAME_PADDLE_SPEED);
-const BALL_SIZE = Number(process.env.NEXT_PUBLIC_GAME_BALL_SIZE);
-const BALL_SPEED = Number(process.env.NEXT_PUBLIC_GAME_BALL_SPEED);
-const BALL_SPEED_MOD = Number(process.env.NEXT_PUBLIC_GAME_BALL_SPEED_MOD);
 
 class Game {
   #canvas: HTMLCanvasElement;
@@ -28,16 +17,15 @@ class Game {
   #user?: StoredUser;
   #keysPressed: Set<string> = new Set<string>();
   #socket: Socket;
-  #ball: BallState;
+  #ball: i.BallState;
 
   constructor(
     socket: Socket,
-    playersState: Record<UserId, GameStateServerPlayer>,
+    public gameState: ClientGameState,
+    public playersState: ClientPlayersState,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
-    public gameState: GameStateServerGame,
     public setCells: React.Dispatch<React.SetStateAction<Map<string, FieldCellState>>>,
-    public cells?: Map<string, FieldCellState>,
   ) {
     this.#canvas = document.getElementById('game') as HTMLCanvasElement;
     this.#ctx = this.#canvas.getContext('2d')!;
@@ -54,9 +42,9 @@ class Game {
     this.#players = Object.entries(playersState).reduce((acc, [plrId, plrState], i) => {
       let x: number;
       if (i === 0) {
-        x = FIELD_MARGIN;
+        x = c.GAME_FIELD_MARGIN;
       } else {
-        x = FIELD_WIDTH - PLR_WIDTH - FIELD_MARGIN;
+        x = c.GAME_FIELD_WIDTH - c.GAME_PLR_HEIGHT - c.GAME_FIELD_MARGIN;
       }
 
       const state: ClientPlayerState = {
@@ -64,8 +52,8 @@ class Game {
         x,
         y: plrState.y,
         direction: plrState.direction,
-        width: PLR_WIDTH,
-        height: PLR_HEIGHT,
+        width: c.GAME_PLR_WIDTH,
+        height: c.GAME_PLR_HEIGHT,
         mark: plrState.mark,
         speed: { x: 0, y: 0 },
       };
@@ -81,16 +69,16 @@ class Game {
       document.addEventListener('keyup', this.#onKeyUp);
     }
 
-    socket.on(c.PLAYER_KEY_DOWN, (data: PlayerKeypressData) => {
+    socket.on(c.PLAYER_KEY_DOWN, (data: i.PlayerKeypressData) => {
       if (data.userId !== this.#user?.id) {
         this.#players[data.userId].direction = data.direction;
         this.#players[data.userId].speed.y = data.direction === 'down'
-          ? PADDLE_SPEED
-          : -PADDLE_SPEED;
+          ? c.GAME_PADDLE_SPEED
+          : -c.GAME_PADDLE_SPEED;
       }
     });
 
-    socket.on(c.PLAYER_KEY_UP, (data: PlayerKeypressUpData) => {
+    socket.on(c.PLAYER_KEY_UP, (data: i.PlayerKeypressUpData) => {
       this.#players[data.userId].y = data.y;
 
       if (data.userId !== this.#user?.id) {
@@ -98,62 +86,62 @@ class Game {
 
         if (data.direction != null) {
           this.#players[data.userId].speed.y = data.direction === 'down'
-            ? PADDLE_SPEED
-            : -PADDLE_SPEED;
+            ? c.GAME_PADDLE_SPEED
+            : -c.GAME_PADDLE_SPEED;
         }
       }
     });
 
-    socket.on(c.BALL_HIT_OBJECT, (data: BallHitObjectData) => {
-      this.#ball = data.ball;
+    // socket.on(c.PLAYER_SELECT_CELL, (data: i.PlayerSelectCellData) => {
+    //   // if (!this.cells) {
+    //   //   console.error(`ERR "${c.PLAYER_SELECT_CELL}": no cells`);
+    //   //   return;
+    //   // }
+
+    //   this.gameState.phase = data.phase;
+
+    //   for (const [cellId, nextCellState] of data.xoState) {
+    //     const curCellState = this.cells.get(cellId);
+
+    //     if (!curCellState) {
+    //       throw Error('no cell');
+    //     }
+
+    //     this.#updateCells(cellId, {
+    //       ...curCellState,
+    //       ...nextCellState,
+    //     });
+    //   }
+    // });
+
+    // socket.on(c.PLAYER_HIT_CELL, (data: PlayerHitCellData) => {
+    //   if (!this.cells) {
+    //     console.error(`ERR "${c.PLAYER_HIT_CELL}": no cells`);
+    //     return;
+    //   }
+
+    //   for (const [cellId, nextCellState] of data.xoState) {
+    //     const curCellState = this.cells.get(cellId);
+
+    //     if (!curCellState) {
+    //       console.error(`ERR "${c.PLAYER_HIT_CELL}": no cell`);
+    //       return;
+    //     }
+
+    //     this.#updateCells(cellId, {
+    //       ...curCellState,
+    //       ...nextCellState,
+    //     });
+    //   }
+    //   this.gameState.turn = data.turn;
+    //   this.gameState.phase = data.phase;
+    // });
+
+    socket.on(c.BALL_TICK, (data: i.BallTickData) => {
+      this.#ball = data;
     });
 
-    socket.on(c.PLAYER_SELECT_CELL, (data: PlayerSelectCellData) => {
-      if (!this.cells) {
-        console.error(`ERR "${c.PLAYER_SELECT_CELL}": no cells`);
-        return;
-      }
-
-      this.gameState.phase = data.phase;
-
-      for (const [cellId, nextCellState] of data.xoState) {
-        const curCellState = this.cells.get(cellId);
-
-        if (!curCellState) {
-          throw Error('no cell');
-        }
-
-        this.#updateCells(cellId, {
-          ...curCellState,
-          ...nextCellState,
-        });
-      }
-    });
-
-    socket.on(c.PLAYER_HIT_CELL, (data: PlayerHitCellData) => {
-      if (!this.cells) {
-        console.error(`ERR "${c.PLAYER_HIT_CELL}": no cells`);
-        return;
-      }
-
-      for (const [cellId, nextCellState] of data.xoState) {
-        const curCellState = this.cells.get(cellId);
-
-        if (!curCellState) {
-          console.error(`ERR "${c.PLAYER_HIT_CELL}": no cell`);
-          return;
-        }
-
-        this.#updateCells(cellId, {
-          ...curCellState,
-          ...nextCellState,
-        });
-      }
-      this.gameState.turn = data.turn;
-      this.gameState.phase = data.phase;
-    });
-
-    // this.drawXOField();
+    this.drawXOField();
     this.#tick();
   }
 
@@ -180,8 +168,8 @@ class Game {
     }
 
     this.#ball.position = {
-      x: FIELD_WIDTH / 2 - BALL_SIZE / 2,
-      y: FIELD_HEIGHT / 2 - BALL_SIZE / 2,
+      x: c.GAME_FIELD_WIDTH / 2 - c.GAME_BALL_SIZE / 2,
+      y: c.GAME_FIELD_HEIGHT / 2 - c.GAME_BALL_SIZE / 2,
     };
   };
 
@@ -191,37 +179,37 @@ class Game {
     }
 
     this.#ball.speed = {
-      x: BALL_SPEED,
+      x: c.GAME_BALL_SPEED,
       y: 0,
     };
   };
 
-  #updateCells = (key: CellId, value: FieldCellState) => {
-    if (this.cells) {
-      this.cells.set(key, value);
-      this.setCells(this.cells);
-    } else {
-      console.error('ERR "updateCells": no cells');
-    }
-  };
+  // #updateCells = (key: i.CellId, value: FieldCellState) => {
+  //   if (this.cells) {
+  //     this.cells.set(key, value);
+  //     this.setCells(this.cells);
+  //   } else {
+  //     console.error('ERR "updateCells": no cells');
+  //   }
+  // };
 
   #updateDirection = () => {
     if (!this.#user) {
       return;
     }
 
-    let direction: Direction = null;
+    let direction: i.Direction = null;
     let velocity = 0;
     const keysArr = [...this.#keysPressed];
     const lastInput = keysArr[keysArr.length - 1];
 
     if (lastInput === 'w' || lastInput === 'arrowup') {
       direction = 'up';
-      velocity = -PADDLE_SPEED;
+      velocity = -c.GAME_PADDLE_SPEED;
     }
     else if (lastInput === 's' || lastInput === 'arrowdown') {
       direction = 'down';
-      velocity = PADDLE_SPEED;
+      velocity = c.GAME_PADDLE_SPEED;
     }
 
     this.#players[this.#user.id].direction = direction;
@@ -268,7 +256,7 @@ class Game {
   };
 
   #updatePositions = () => {
-    if (!(['finished', 'playing'] as PlaystateTypes[]).includes(this.gameState.playState)) {
+    if (!(['finished', 'playing'] as i.PlaystateTypes[]).includes(this.gameState.playState)) {
       return;
     }
 
@@ -281,7 +269,7 @@ class Game {
           next = this.#players[playerId].y + this.#players[playerId].speed.y;
         }
 
-        if (next >= 0 && next <= FIELD_HEIGHT - PLR_HEIGHT) {
+        if (next >= 0 && next <= c.GAME_FIELD_HEIGHT - c.GAME_PLR_HEIGHT) {
           this.#players[playerId].y = next;
         }
       }
@@ -293,15 +281,15 @@ class Game {
     }
 
     const mod = (this.gameState.phase === 'xo' || this.gameState.playState === 'finished')
-      ? BALL_SPEED_MOD
+      ? c.GAME_BALL_SPEED_MOD
       : 1;
 
-    let changed = false;
+    // let changed = false;
     this.#ball.position.x += mod * this.#ball.speed.x;
     this.#ball.position.y += mod * this.#ball.speed.y;
 
     const { position, speed } = this.#ball;
-    const HALF_BALL_SIZE = BALL_SIZE / 2;
+    const HALF_BALL_SIZE = c.GAME_BALL_SIZE / 2;
     const topX = position.x - HALF_BALL_SIZE;
     const topY = this.#ball.position.y - HALF_BALL_SIZE;
     const bottomX = position.x + HALF_BALL_SIZE;
@@ -311,36 +299,36 @@ class Game {
     if (position.x - HALF_BALL_SIZE < 0) {
       this.#ball.position.x = HALF_BALL_SIZE;
       this.#ball.speed.x = -speed.x;
-      changed = true;
-    } else if (position.x + HALF_BALL_SIZE > FIELD_WIDTH) {
-      this.#ball.position.x = FIELD_WIDTH - HALF_BALL_SIZE;
+      // changed = true;
+    } else if (position.x + HALF_BALL_SIZE > c.GAME_FIELD_WIDTH) {
+      this.#ball.position.x = c.GAME_FIELD_WIDTH - HALF_BALL_SIZE;
       this.#ball.speed.x = -speed.x;
-      changed = true;
+      // changed = true;
     }
 
     // Top / bottom boundaries
     if (position.y - HALF_BALL_SIZE < 0) {
       this.#ball.position.y = HALF_BALL_SIZE;
       this.#ball.speed.y = -speed.y;
-      changed = true;
-    } else if (position.y + HALF_BALL_SIZE > FIELD_HEIGHT) {
-      this.#ball.position.y = FIELD_HEIGHT - HALF_BALL_SIZE;
+      // changed = true;
+    } else if (position.y + HALF_BALL_SIZE > c.GAME_FIELD_HEIGHT) {
+      this.#ball.position.y = c.GAME_FIELD_HEIGHT - HALF_BALL_SIZE;
       this.#ball.speed.y = -speed.y;
-      changed = true;
+      // changed = true;
     }
 
     // Reset code???
-    // if (this.#ball.position.y < 0 || this.#ball.position.y > FIELD_WIDTH) {
-    //   this.#ball.speed.x = BALL_SPEED;
+    // if (this.#ball.position.y < 0 || this.#ball.position.y > c.GAME_FIELD_WIDTH) {
+    //   this.#ball.speed.x = c.GAME_BALL_SPEED;
     //   this.#ball.speed.y = 0;
-    //   this.#ball.position.x = FIELD_WIDTH / 2;
-    //   this.#ball.position.y = FIELD_HEIGHT / 2;
+    //   this.#ball.position.x = c.GAME_FIELD_WIDTH / 2;
+    //   this.#ball.position.y = c.GAME_FIELD_HEIGHT / 2;
     // }
 
     const paddle1 = this.#players[this.gameState.players[1]];
     const paddle2 = this.#players[this.gameState.players[2]];
 
-    if (bottomX < PLR_WIDTH * 2) {
+    if (bottomX < c.GAME_PLR_HEIGHT * 2) {
       // Check for hit player 1
       const paddleBottom = paddle1.y + paddle1.height;
       const paddleTop = paddle1.y;
@@ -352,10 +340,10 @@ class Game {
       const xCheck2 = bottomX > paddleLeft;
 
       if (yCheck1 && yCheck2 && xCheck1 && xCheck2) {
-        this.#ball.speed.x = BALL_SPEED;
+        this.#ball.speed.x = c.GAME_BALL_SPEED;
         this.#ball.speed.y += (paddle1.speed.y / 2);
         this.#ball.position.x += this.#ball.speed.x;
-        changed = true;
+        // changed = true;
       }
       // else {
       //   if (xCheck1 && xCheck2) {
@@ -373,7 +361,7 @@ class Game {
       //     }
       //   }
       // }
-    } else if (bottomX > FIELD_WIDTH - PLR_WIDTH * 2) {
+    } else if (bottomX > c.GAME_FIELD_WIDTH - c.GAME_PLR_HEIGHT * 2) {
       const paddleBottom = paddle2.y + paddle2.height;
       const paddleTop = paddle2.y;
       const paddleRight = paddle2.x + paddle2.width;
@@ -384,10 +372,10 @@ class Game {
       const xCheck2 = bottomX > paddleLeft;
 
       if (yCheck1 && yCheck2 && xCheck1 && xCheck2) {
-        this.#ball.speed.x = -BALL_SPEED;
+        this.#ball.speed.x = -c.GAME_BALL_SPEED;
         this.#ball.speed.y += (paddle2.speed.y / 2);
         this.#ball.position.x += this.#ball.speed.x;
-        changed = true;
+        // changed = true;
       }
       // else {
       //   if (xCheck1 && xCheck2) {
@@ -407,50 +395,16 @@ class Game {
       // }
     }
 
-    if (changed) {
-      this.#socket.emit(c.BALL_HIT_OBJECT, {
-        gameId: this.gameState.id,
-        ball: this.#ball,
-      });
-    }
+    // if (changed) {
+    //   this.#socket.emit(c.BALL_HIT_OBJECT, {
+    //     gameId: this.gameState.id,
+    //     ball: this.#ball,
+    //   });
+    // }
   };
 
-  #checkCellsCollision = () => {
-    const { position } = this.#ball;
-    let hitCell: FieldCellState | null = null;
-
-    if (!this.cells) {
-      return;
-    }
-
-    for (const cell of this.cells.values()) {
-      const x2 = cell.x + XO_SQUARE_SIZE;
-      const y2 = cell.y + XO_SQUARE_SIZE;
-
-      if (
-        cell.state === 'selected' && cell.user === this.#user?.id &&
-        position.x > cell.x && position.x < x2 && position.y > cell.y && position.y < y2
-      ) {
-        hitCell = cell;
-      }
-    }
-
-    if (hitCell) {
-      this.#updateCells(hitCell.cellId, {
-        ...hitCell,
-        state: 'captured',
-      });
-
-      this.#socket.emit(c.PLAYER_HIT_CELL, {
-        gameId: this.gameState.id,
-        userId: this.#user?.id,
-        cellId: hitCell.cellId,
-      });
-    }
-  };
-
-  drawXOField = (cells?: Map<string, XoState>) => {
-    const CELL_SIZE = XO_SQUARE_SIZE;
+  getCellBorderPositions() {
+    const CELL_SIZE = c.GAME_XO_SQUARE_SIZE;
     const Mx = this.#canvas.width / 2;
     const My = this.#canvas.height / 2;
     const L1x = Mx - (CELL_SIZE / 2);
@@ -462,34 +416,38 @@ class Game {
     const L4x = L3x;
     const L4y = My + (CELL_SIZE / 2);
 
-    const newCells = (() => {
-      if (cells) {
-        const cellsCopy = new Map(cells) as Map<string, FieldCellState>;
+    return { L1x, L1y, L2x, L2y, L3x, L3y, L4x, L4y };
+  }
 
-        for (let x = 0; x < 3; x++) {
-          for (let y = 0; y < 3; y++) {
-            const cellX = L3x + (CELL_SIZE * x);
-            const cellY = L1y + (CELL_SIZE * y);
-            const cellId = '' + x + y;
+  getCellsState(cellsMap: Map<i.CellId, i.XoState>) {
+    const { L3x, L1y } = this.getCellBorderPositions();
+    const cellsCopy = new Map(cellsMap) as Map<i.CellId, FieldCellState>;
 
-            const cell = cells.get(cellId);
+    for (let x = 0; x < 3; x++) {
+      for (let y = 0; y < 3; y++) {
+        const cellX = L3x + (c.GAME_XO_SQUARE_SIZE * x);
+        const cellY = L1y + (c.GAME_XO_SQUARE_SIZE * y);
+        const cellId = '' + x + y;
 
-            if (!cell) {
-              console.error('ERR "drawXOField": no cells');
-              return;
-            }
-
-            cellsCopy.set(cellId, {
-              ...cell,
-              x: cellX,
-              y: cellY,
-            });
-          }
+        const cell = cellsMap.get(cellId);
+        if (!cell) {
+          console.error('ERR "getCellsForState": no cells');
+          return cellsCopy;
         }
 
-        return cellsCopy;
+        cellsCopy.set(cellId, {
+          ...cell,
+          x: cellX,
+          y: cellY,
+        });
       }
-    })();
+    }
+
+    return cellsCopy;
+  }
+
+  drawXOField = () => {
+    const { L1x, L1y, L2x, L2y, L3x, L3y, L4x, L4y } = this.getCellBorderPositions();
 
     for (const [d, x, y] of [
       [0, L1x, L1y],
@@ -502,14 +460,12 @@ class Game {
       this.#ctx.strokeStyle = theme.extend.colors.primary[900];
       this.#ctx.moveTo(x, y);
       if (d) {
-        this.#ctx.lineTo(x + (CELL_SIZE * 3), y);
+        this.#ctx.lineTo(x + (c.GAME_XO_SQUARE_SIZE * 3), y);
       } else {
-        this.#ctx.lineTo(x, y + (CELL_SIZE * 3));
+        this.#ctx.lineTo(x, y + (c.GAME_XO_SQUARE_SIZE * 3));
       }
       this.#ctx.stroke();
     }
-
-    return newCells;
   };
 
   #drawPlayers = () => {
@@ -531,7 +487,7 @@ class Game {
     this.#ctx.arc(
       this.#ball.position.x,
       this.#ball.position.y,
-      BALL_SIZE,
+      c.GAME_BALL_SIZE,
       0,
       2 * Math.PI,
       false,
@@ -549,62 +505,10 @@ class Game {
   #tick = () => {
     this.#updatePositions();
     this.#draw();
-    this.#checkCellsCollision();
+    // this.#checkCellsCollision();
     requestAnimationFrame(this.#tick);
     // setTimeout(this.#tick, 100);
   };
 }
-
-export type GameId = string;
-export type UserId = string;
-export type CellId = string;
-export type PlaystateTypes = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
-export type PhaseTypes = 'pong' | 'xo';
-export type Direction = 'up' | 'down' | null;
-export type Mark = 'x' | 'o';
-export type CellState = null | 'selected' | 'captured';
-
-export type FieldCellState = XoState & {
-  x: number;
-  y: number;
-};
-
-export type ServerPlayerState = {
-  id: UserId;
-  y: number;
-  direction: Direction;
-  mark: Mark;
-  connected: boolean;
-  socketId: string;
-};
-
-type ClientPlayerState = {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  direction: Direction;
-  mark: Mark;
-  speed: { x: number; y: number };
-};
-
-type PlayerKeypressData = {
-  userId: string;
-  direction: Direction;
-};
-
-type PlayerKeypressUpData = PlayerKeypressData & {
-  y: number;
-};
-
-type BallHitObjectData = {
-  ball: BallState;
-};
-
-export type BallState = {
-  position: { x: number; y: number };
-  speed: { x: number; y: number };
-};
 
 export default Game;

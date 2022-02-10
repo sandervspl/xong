@@ -3,12 +3,14 @@ export type UserId = string;
 export type CellId = string;
 export type Mark = 'x' | 'o';
 export type Direction = null | 'up' | 'down';
-export type GamePhase = 'xo' | 'pong';
-export type GamePlayState = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
+export type PhaseTypes = 'pong' | 'xo';
+export type PlaystateTypes = 'waiting_for_players' | 'starting' | 'playing' | 'paused' | 'finished';
+export type XY = { x: number; y: number };
+export type CellState = null | 'selected' | 'captured';
 
 export type BallState = {
-  position: { x: number; y: number };
-  speed: { x: number; y: number };
+  position: XY;
+  speed: XY;
 };
 
 export type PlayerState = {
@@ -24,8 +26,8 @@ export type PlayerState = {
 export type GameState = {
   id: GameId;
   turn: string;
-  playState: GamePlayState;
-  phase: GamePhase;
+  playState: PlaystateTypes;
+  phase: PhaseTypes;
   players: { 1: UserId; 2: UserId; };
   xoState: Map<CellId, XoState>;
   ball: BallState;

@@ -8,18 +8,7 @@
       "dependsOn": [
         "^build",
         "$FAUNA_CLIENT_SECRET",
-        "$APP_ENV",
-        "$NEXT_PUBLIC_GAME_FIELD_HEIGHT",
-        "$NEXT_PUBLIC_GAME_FIELD_WIDTH",
-        "$NEXT_PUBLIC_GAME_XO_SQUARE_SIZE",
-        "$NEXT_PUBLIC_GAME_PLR_HEIGHT",
-        "$NEXT_PUBLIC_GAME_PLR_WIDTH",
-        "$NEXT_PUBLIC_GAME_FIELD_MARGIN",
-        "$NEXT_PUBLIC_GAME_PADDLE_SPEED",
-        "$NEXT_PUBLIC_GAME_BALL_SIZE",
-        "$NEXT_PUBLIC_GAME_BALL_SPEED",
-        "$NEXT_PUBLIC_GAME_BALL_SPEED_MOD",
-        "$NEXT_PUBLIC_GAME_PICK_TIMER"
+        "$APP_ENV"
       ],
       "outputs": [".next/**"]
     },

@@ -6,7 +6,8 @@ export const PLAYER_KEY_DOWN = 'player-key-down';
 export const PLAYER_KEY_UP = 'player-key-up';
 export const PLAYER_SELECT_CELL = 'player-select-cell';
 export const PLAYER_HIT_CELL = 'player-hit-cell';
-export const BALL_HIT_OBJECT = 'ball-hit-object';
+// export const BALL_HIT_OBJECT = 'ball-hit-object';
+export const BALL_TICK = 'ball-tick';
 
 export const QUEUE = 'queue';
 export const GAME_READY = 'game-ready';
