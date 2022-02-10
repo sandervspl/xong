@@ -69,13 +69,6 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     socket.on(c.USER_JOINED_GAME, (data: i.UserJoinedData) => {
       console.info('Connected to game lobby!');
-
-      // const nextCells = gameRef.current.drawXOField(clientGame.xoState)!;
-      // gameRef.current.cells = nextCells;
-
-      // setCells(nextCells);
-      // setGameState(clientGame);
-      // setPlayersState(data.players);
       setLoading(false);
     });
 
@@ -119,8 +112,9 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     // Calculate cell positions with current XO state
     setCells(gameRef.current.getCellsState(gameState.xoState));
+  }, [loading, gameState, gameRef.current]);
 
-    // Add socket emit listeners
+  React.useEffect(() => {
     socket.on(c.GAME_PLAYSTATE_UPDATE, (data: i.PlaystateUpdateData) => {
       if (data === 'starting') {
         doPregameCountdown();
@@ -142,9 +136,9 @@ const GameLobby: React.VFC<Props> = (props) => {
       };
     });
 
-    socket.on(c.PLAYER_CONNECT_UPDATE, (update: i.PlayerConnectUpdateData) => {
+    socket.on(c.PLAYER_CONNECT_UPDATE, (data: i.PlayerConnectUpdateData) => {
       setPlayersState((draft) => {
-        draft[update.userId].connected = update.connected;
+        draft[data.userId].connected = data.connected;
       });
     });
 
@@ -188,29 +182,13 @@ const GameLobby: React.VFC<Props> = (props) => {
       socket.off(c.PLAYER_SELECT_CELL);
       socket.off(c.PLAYER_HIT_CELL);
     };
-  }, [loading, gameState]);
+  }, []);
 
   React.useEffect(() => {
-    if (gameState?.playState !== 'starting') {
-      return;
-    }
-
-    if (preGameCountdown <= 0) {
-      socket.emit(c.GAME_PLAYSTATE_UPDATE, {
-        gameId: (query as Queries).gameId,
-        playState: 'playing',
-      });
-    }
-    else if (preGameCountdown < 3) {
+    if (preGameCountdown > 0) {
       doPregameCountdown();
     }
-  }, [preGameCountdown, gameState, playersState]);
-
-  // React.useEffect(() => {
-  //   if (gameRef.current) {
-  //     gameRef.current.cells = cells;
-  //   }
-  // }, [gameRef.current, cells]);
+  }, [preGameCountdown]);
 
   function doPregameCountdown() {
     setTimeout(() => {
