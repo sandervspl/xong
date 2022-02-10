@@ -68,14 +68,26 @@ export default async function gameActions(socket: Socket, io: Server) {
       }
 
       const allConnected = game.getPlayers().every((plr) => plr?.connected);
+
       if (allConnected && gstate.playState !== 'playing') {
-        const next: i.GameState['playState'] = 'starting';
+        const emitData: i.PlaystateUpdateData = 'starting';
 
         game.setState((draft) => {
-          draft.playState = next;
+          draft.playState = emitData;
         });
 
-        io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, next);
+        io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, emitData);
+
+        // Start game in ~3 seconds
+        setTimeout(() => {
+          const emitData: i.PlaystateUpdateData = 'playing';
+
+          game.setState((draft) => {
+            draft.playState = emitData;
+          });
+
+          io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, emitData);
+        }, 3050);
       }
     }
   });
@@ -157,7 +169,7 @@ export default async function gameActions(socket: Socket, io: Server) {
 
     player.setState((draft) => {
       draft.direction = data.direction;
-      draft.y = data.y;
+      draft.position.y = data.y;
     });
 
     // only seems to work if I emit from server, not socket
