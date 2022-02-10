@@ -44,7 +44,7 @@ class Game {
       if (i === 0) {
         x = c.GAME_FIELD_MARGIN;
       } else {
-        x = c.GAME_FIELD_WIDTH - c.GAME_PLR_HEIGHT - c.GAME_FIELD_MARGIN;
+        x = c.GAME_FIELD_WIDTH - c.GAME_PLR_WIDTH - c.GAME_FIELD_MARGIN;
       }
 
       const state: ClientPlayerState = {

@@ -5,8 +5,7 @@ import { useRouter } from 'next/router';
 
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
-
-import type { GameStateClientGame } from '../../pages/game/[gameId]';
+import type { ClientGameState } from './types';
 
 
 const Cell: React.VFC<Props> = (props) => {
@@ -54,9 +53,9 @@ const Cell: React.VFC<Props> = (props) => {
       style={{
         top: props.y + 4 + 'px',
         left: props.x + 4 + 'px',
-        width: Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE) - 4 + 'px',
-        height: Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE) - 4 + 'px',
-        lineHeight: Number(process.env.NEXT_PUBLIC_GAME_XO_SQUARE_SIZE) + 'px', // Center text
+        width: c.GAME_XO_SQUARE_SIZE - 4 + 'px',
+        height: c.GAME_XO_SQUARE_SIZE - 4 + 'px',
+        lineHeight: c.GAME_XO_SQUARE_SIZE + 'px', // Center text
       }}
       onClick={handleClick}
     >
@@ -69,7 +68,7 @@ export type Props = {
   x: number;
   y: number;
   cellId: string;
-  gameState?: GameStateClientGame;
+  gameState?: ClientGameState;
   userIsPlayer: boolean;
 };
 
