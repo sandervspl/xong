@@ -23,7 +23,26 @@ export default function Page() {
   const [error, setError] = React.useState('');
 
 
+  React.useEffect(() => {
+    // Listen to game creation updates
+    socket.on(c.GAME_READY, (data) => {
+      console.info('game ready!', data);
+      setWaitState('ready');
+    });
+
+    // Game ready, navigate to game
+    socket.on(c.GAME_CREATED, (gameId) => {
+      setWaitState('created');
+
+      setTimeout(() => {
+        router.push(`/game/${gameId}`);
+      }, 1000);
+    });
+  }, []);
+
   async function onPlayClick() {
+    setWaitState('waiting');
+
     // Create user if necessary
     userMutation.mutate(username, {
       async onSuccess(response) {
@@ -31,11 +50,13 @@ export default function Page() {
         const { user } = data;
 
         if (user == null) {
+          setWaitState(null);
           return console.error('No user returned from API');
         }
 
         const isLocalSavedUser = getItem('usernames')?.find((v) => v.id === user._id);
         if (data.existed && !isLocalSavedUser) {
+          setWaitState(null);
           return setError('This username already exists and/or is not yours. Please try another name!');
         }
 
@@ -65,24 +86,8 @@ export default function Page() {
 
         // Add user to waiting room
         socket.emit(c.QUEUE, user._id);
-        setWaitState('waiting');
 
         console.info('Waiting for game...');
-
-        // Listen to game creation updates
-        socket.on(c.GAME_READY, (data) => {
-          console.info('game ready!', data);
-          setWaitState('ready');
-        });
-
-        // Game ready, navigate to game
-        socket.on(c.GAME_CREATED, (gameId) => {
-          setWaitState('created');
-
-          setTimeout(() => {
-            router.push(`/game/${gameId}`);
-          }, 1000);
-        });
       },
     });
   }
