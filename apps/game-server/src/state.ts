@@ -96,11 +96,12 @@ export function getGame(id: i.GameId) {
   };
 }
 
-export const defaultPlrState: Omit<i.PlayerState, 'id' | 'gameId' | 'mark' | 'num'> = {
-  y: 0,
+type PlrStateOmit = 'id' | 'gameId' | 'mark' | 'num' | 'position';
+export const defaultPlrState: Omit<i.PlayerState, PlrStateOmit > = {
   direction: null,
   connected: false,
   socketId: '',
+  speed: { x: 0, y: 0 },
 };
 
 export default state;

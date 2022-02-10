@@ -195,7 +195,7 @@ export default async function gameActions(socket: Socket, io: Server) {
       return;
     }
 
-    const nextPhase: i.GamePhase = 'pong';
+    const nextPhase: i.PhaseTypes = 'pong';
     const nextXoState = new Map(gstate.xoState);
     nextXoState.set(data.cellId, {
       cellId: data.cellId,
@@ -256,7 +256,7 @@ export default async function gameActions(socket: Socket, io: Server) {
       ? gstate.players[2]
       : gstate.players[1];
 
-    const nextPhase: i.GamePhase = 'xo';
+    const nextPhase: i.PhaseTypes = 'xo';
 
     // Check win condition
     const possibilities = [

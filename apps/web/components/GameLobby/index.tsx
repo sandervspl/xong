@@ -115,7 +115,6 @@ const GameLobby: React.VFC<Props> = (props) => {
       playersState,
       user,
       userIsPlayer,
-      setCells,
     );
 
     // Calculate cell positions with current XO state

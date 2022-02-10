@@ -95,12 +95,20 @@ async function processQueue() {
           id: p1.userId,
           gameId: game.data._id,
           mark: 'x',
+          position: {
+            x: c.GAME_FIELD_MARGIN,
+            y: c.GAME_FIELD_HEIGHT / 2 - c.GAME_PLR_HEIGHT / 2,
+          },
         };
         state.players[p2.userId] = {
           ...defaultPlrState,
           gameId: game.data._id,
           id: p2.userId,
           mark: 'o',
+          position: {
+            x: c.GAME_FIELD_WIDTH - c.GAME_PLR_WIDTH - c.GAME_FIELD_MARGIN,
+            y: c.GAME_FIELD_HEIGHT / 2 - c.GAME_PLR_HEIGHT / 2,
+          },
         };
 
         // Emit Game Ready to users

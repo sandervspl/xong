@@ -17,11 +17,10 @@ export type ServerPlayerState = {
 
 export type ClientPlayerState = {
   id: string;
-  x: number;
-  y: number;
   width: number;
   height: number;
   direction: i.Direction;
   mark: i.Mark;
-  speed: { x: number; y: number };
+  speed: i.XY;
+  position: i.XY;
 };

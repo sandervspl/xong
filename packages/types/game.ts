@@ -16,7 +16,8 @@ export type BallState = {
 export type PlayerState = {
   id: UserId;
   gameId: GameId;
-  y: number;
+  position: XY;
+  speed: XY;
   direction: Direction;
   connected: boolean;
   socketId: string;

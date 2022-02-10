@@ -1,15 +1,8 @@
 import type * as i from '@xong/types';
 
 
-export type CombinedPlayerState = {
+export type CombinedPlayerState = i.PlayerState & {
   username: string;
-  id: string;
-  gameId: string;
-  y: number;
-  direction: i.Direction;
-  connected: boolean;
-  socketId: string;
-  mark: i.Mark;
 };
 
 export type ClientGameState = Omit<i.GetGameResult['game'], 'xoState'> & {

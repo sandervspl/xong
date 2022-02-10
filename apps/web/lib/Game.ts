@@ -1,19 +1,18 @@
 import type * as i from '@xong/types';
 import * as c from '@xong/constants';
 import type { Socket } from 'socket.io-client';
-import type * as React from 'react';
+import { produce } from 'immer';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
 import type { ClientGameState, ClientPlayersState } from 'components/GameLobby/types';
 
 import { theme } from '../tailwind.config.js';
-import type { ClientPlayerState, FieldCellState } from './types';
+import type { FieldCellState } from './types';
 
 
 class Game {
   #canvas: HTMLCanvasElement;
   #ctx: CanvasRenderingContext2D;
-  #players: Record<string, ClientPlayerState>;
   #user?: StoredUser;
   #keysPressed: Set<string> = new Set<string>();
   #socket: Socket;
@@ -25,7 +24,6 @@ class Game {
     public playersState: ClientPlayersState,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
-    public setCells: React.Dispatch<React.SetStateAction<Map<string, FieldCellState>>>,
   ) {
     this.#canvas = document.getElementById('game') as HTMLCanvasElement;
     this.#ctx = this.#canvas.getContext('2d')!;
@@ -39,30 +37,6 @@ class Game {
         speed: { x: 0, y: 0 },
       };
 
-    this.#players = Object.entries(playersState).reduce((acc, [plrId, plrState], i) => {
-      let x: number;
-      if (i === 0) {
-        x = c.GAME_FIELD_MARGIN;
-      } else {
-        x = c.GAME_FIELD_WIDTH - c.GAME_PLR_WIDTH - c.GAME_FIELD_MARGIN;
-      }
-
-      const state: ClientPlayerState = {
-        id: plrId,
-        x,
-        y: plrState.y,
-        direction: plrState.direction,
-        width: c.GAME_PLR_WIDTH,
-        height: c.GAME_PLR_HEIGHT,
-        mark: plrState.mark,
-        speed: { x: 0, y: 0 },
-      };
-
-      acc[plrId] = state;
-
-      return acc;
-    }, {});
-
     // Only give players of this game keyboard controls
     if (userIsPlayer) {
       document.addEventListener('keydown', this.#onKeyDown);
@@ -71,25 +45,29 @@ class Game {
 
     socket.on(c.PLAYER_KEY_DOWN, (data: i.PlayerKeypressData) => {
       if (data.userId !== this.#user?.id) {
-        this.#players[data.userId].direction = data.direction;
-        this.#players[data.userId].speed.y = data.direction === 'down'
-          ? c.GAME_PADDLE_SPEED
-          : -c.GAME_PADDLE_SPEED;
+        this.playersState = produce(this.playersState, (draft) => {
+          draft[data.userId].direction = data.direction;
+          draft[data.userId].speed.y = data.direction === 'down'
+            ? c.GAME_PADDLE_SPEED
+            : -c.GAME_PADDLE_SPEED;
+        });
       }
     });
 
     socket.on(c.PLAYER_KEY_UP, (data: i.PlayerKeypressUpData) => {
-      this.#players[data.userId].y = data.y;
+      this.playersState = produce(this.playersState, (draft) => {
+        draft[data.userId].position.y = data.y;
 
-      if (data.userId !== this.#user?.id) {
-        this.#players[data.userId].direction = data.direction;
+        if (data.userId !== this.#user?.id) {
+          draft[data.userId].direction = data.direction;
 
-        if (data.direction != null) {
-          this.#players[data.userId].speed.y = data.direction === 'down'
-            ? c.GAME_PADDLE_SPEED
-            : -c.GAME_PADDLE_SPEED;
+          if (data.direction != null) {
+            draft[data.userId].speed.y = data.direction === 'down'
+              ? c.GAME_PADDLE_SPEED
+              : -c.GAME_PADDLE_SPEED;
+          }
         }
-      }
+      });
     });
 
     // socket.on(c.PLAYER_SELECT_CELL, (data: i.PlayerSelectCellData) => {
@@ -154,14 +132,6 @@ class Game {
     // this.#tick();
   };
 
-  getPlayer = (userId?: string) => {
-    if (userId == null) {
-      return;
-    }
-
-    return this.#players[userId];
-  };
-
   initBall = () => {
     if (this.#ball.position.x > 0) {
       return;
@@ -184,15 +154,6 @@ class Game {
     };
   };
 
-  // #updateCells = (key: i.CellId, value: FieldCellState) => {
-  //   if (this.cells) {
-  //     this.cells.set(key, value);
-  //     this.setCells(this.cells);
-  //   } else {
-  //     console.error('ERR "updateCells": no cells');
-  //   }
-  // };
-
   #updateDirection = () => {
     if (!this.#user) {
       return;
@@ -212,8 +173,11 @@ class Game {
       velocity = c.GAME_PADDLE_SPEED;
     }
 
-    this.#players[this.#user.id].direction = direction;
-    this.#players[this.#user.id].speed.y = velocity;
+    const id = this.#user.id;
+    this.playersState = produce(this.playersState, (draft) => {
+      draft[id].direction = direction;
+      draft[id].speed.y = velocity;
+    });
 
     return direction;
   };
@@ -249,7 +213,7 @@ class Game {
       this.#socket.emit(c.PLAYER_KEY_UP, {
         gameId: this.gameState.id,
         userId: this.#user.id,
-        y: this.#players[this.#user.id].y,
+        y: this.playersState[this.#user.id].position.y,
         direction: nextDirection,
       });
     }
@@ -262,15 +226,18 @@ class Game {
 
     // PLAYERS
     if (this.gameState.playState === 'playing') {
-      for (const playerId of Object.keys(this.#players)) {
-        let next = this.#players[playerId].y;
+      for (const playerId of Object.keys(this.playersState)) {
+        const plr = this.playersState[playerId];
+        let next = plr.position.y;
 
-        if (this.#players[playerId].direction != null) {
-          next = this.#players[playerId].y + this.#players[playerId].speed.y;
+        if (plr.direction != null) {
+          next = plr.position.y + plr.speed.y;
         }
 
         if (next >= 0 && next <= c.GAME_FIELD_HEIGHT - c.GAME_PLR_HEIGHT) {
-          this.#players[playerId].y = next;
+          this.playersState = produce(this.playersState, (draft) => {
+            draft[playerId].position.y = next;
+          });
         }
       }
     }
@@ -284,66 +251,72 @@ class Game {
       ? c.GAME_BALL_SPEED_MOD
       : 1;
 
-    // let changed = false;
-    this.#ball.position.x += mod * this.#ball.speed.x;
-    this.#ball.position.y += mod * this.#ball.speed.y;
+    this.#ball = produce(this.#ball, (draft) => {
+      draft.position.x += draft.speed.x * mod;
+      draft.position.y += draft.speed.y * mod;
+    });
 
-    const { position, speed } = this.#ball;
+    const { position } = this.#ball;
     const HALF_BALL_SIZE = c.GAME_BALL_SIZE / 2;
     const topX = position.x - HALF_BALL_SIZE;
-    const topY = this.#ball.position.y - HALF_BALL_SIZE;
+    const topY = position.y - HALF_BALL_SIZE;
     const bottomX = position.x + HALF_BALL_SIZE;
-    const bottomY = this.#ball.position.y + HALF_BALL_SIZE;
+    const bottomY = position.y + HALF_BALL_SIZE;
 
     // Left / right boundaries
     if (position.x - HALF_BALL_SIZE < 0) {
-      this.#ball.position.x = HALF_BALL_SIZE;
-      this.#ball.speed.x = -speed.x;
-      // changed = true;
+      this.#ball = produce(this.#ball, (draft) => {
+        draft.position.x = HALF_BALL_SIZE;
+        draft.speed.x = -draft.speed.x;
+      });
     } else if (position.x + HALF_BALL_SIZE > c.GAME_FIELD_WIDTH) {
-      this.#ball.position.x = c.GAME_FIELD_WIDTH - HALF_BALL_SIZE;
-      this.#ball.speed.x = -speed.x;
-      // changed = true;
+      this.#ball = produce(this.#ball, (draft) => {
+        draft.position.x = c.GAME_FIELD_WIDTH - HALF_BALL_SIZE;
+        draft.speed.x = -draft.speed.x;
+      });
     }
 
     // Top / bottom boundaries
     if (position.y - HALF_BALL_SIZE < 0) {
-      this.#ball.position.y = HALF_BALL_SIZE;
-      this.#ball.speed.y = -speed.y;
-      // changed = true;
+      this.#ball = produce(this.#ball, (draft) => {
+        draft.position.y = HALF_BALL_SIZE;
+        draft.speed.y = -draft.speed.y;
+      });
     } else if (position.y + HALF_BALL_SIZE > c.GAME_FIELD_HEIGHT) {
-      this.#ball.position.y = c.GAME_FIELD_HEIGHT - HALF_BALL_SIZE;
-      this.#ball.speed.y = -speed.y;
-      // changed = true;
+      this.#ball = produce(this.#ball, (draft) => {
+        draft.position.y = c.GAME_FIELD_HEIGHT - HALF_BALL_SIZE;
+        draft.speed.y = -draft.speed.y;
+      });
     }
 
     // Reset code???
-    // if (this.#ball.position.y < 0 || this.#ball.position.y > c.GAME_FIELD_WIDTH) {
+    // if (position.y < 0 || position.y > c.GAME_FIELD_WIDTH) {
     //   this.#ball.speed.x = c.GAME_BALL_SPEED;
     //   this.#ball.speed.y = 0;
     //   this.#ball.position.x = c.GAME_FIELD_WIDTH / 2;
     //   this.#ball.position.y = c.GAME_FIELD_HEIGHT / 2;
     // }
 
-    const paddle1 = this.#players[this.gameState.players[1]];
-    const paddle2 = this.#players[this.gameState.players[2]];
+    const paddle1 = this.playersState[this.gameState.players[1]];
+    const paddle2 = this.playersState[this.gameState.players[2]];
 
     if (bottomX < c.GAME_PLR_HEIGHT * 2) {
       // Check for hit player 1
-      const paddleBottom = paddle1.y + paddle1.height;
-      const paddleTop = paddle1.y;
-      const paddleRight = paddle1.x + paddle1.width;
-      const paddleLeft = paddle1.x;
+      const paddleBottom = paddle1.position.y + c.GAME_PLR_HEIGHT;
+      const paddleTop = paddle1.position.y;
+      const paddleRight = paddle1.position.x + c.GAME_PLR_WIDTH;
+      const paddleLeft = paddle1.position.x;
       const yCheck1 = topY < paddleBottom;
       const yCheck2 = bottomY > paddleTop;
       const xCheck1 = topX < paddleRight;
       const xCheck2 = bottomX > paddleLeft;
 
       if (yCheck1 && yCheck2 && xCheck1 && xCheck2) {
-        this.#ball.speed.x = c.GAME_BALL_SPEED;
-        this.#ball.speed.y += (paddle1.speed.y / 2);
-        this.#ball.position.x += this.#ball.speed.x;
-        // changed = true;
+        this.#ball = produce(this.#ball, (draft) => {
+          draft.speed.x = c.GAME_BALL_SPEED;
+          draft.speed.y = (paddle1.speed.y / 2);
+          draft.position.x += draft.speed.x;
+        });
       }
       // else {
       //   if (xCheck1 && xCheck2) {
@@ -362,20 +335,21 @@ class Game {
       //   }
       // }
     } else if (bottomX > c.GAME_FIELD_WIDTH - c.GAME_PLR_HEIGHT * 2) {
-      const paddleBottom = paddle2.y + paddle2.height;
-      const paddleTop = paddle2.y;
-      const paddleRight = paddle2.x + paddle2.width;
-      const paddleLeft = paddle2.x;
+      const paddleBottom = paddle2.position.y + c.GAME_PLR_HEIGHT;
+      const paddleTop = paddle2.position.y;
+      const paddleRight = paddle2.position.x + c.GAME_PLR_WIDTH;
+      const paddleLeft = paddle2.position.x;
       const yCheck1 = topY < paddleBottom;
       const yCheck2 = bottomY > paddleTop;
       const xCheck1 = topX < paddleRight;
       const xCheck2 = bottomX > paddleLeft;
 
       if (yCheck1 && yCheck2 && xCheck1 && xCheck2) {
-        this.#ball.speed.x = -c.GAME_BALL_SPEED;
-        this.#ball.speed.y += (paddle2.speed.y / 2);
-        this.#ball.position.x += this.#ball.speed.x;
-        // changed = true;
+        this.#ball = produce(this.#ball, (draft) => {
+          draft.speed.x = -c.GAME_BALL_SPEED;
+          draft.speed.y = (paddle2.speed.y / 2);
+          draft.position.x += draft.speed.x;
+        });
       }
       // else {
       //   if (xCheck1 && xCheck2) {
@@ -394,13 +368,6 @@ class Game {
       //   }
       // }
     }
-
-    // if (changed) {
-    //   this.#socket.emit(c.BALL_HIT_OBJECT, {
-    //     gameId: this.gameState.id,
-    //     ball: this.#ball,
-    //   });
-    // }
   };
 
   getCellBorderPositions() {
@@ -470,13 +437,13 @@ class Game {
 
   #drawPlayers = () => {
     let i = 1;
-    for (const playerId of Object.keys(this.#players)) {
+    for (const playerId of Object.keys(this.playersState)) {
       this.#ctx.fillStyle = theme.extend.colors.player[i++];
       this.#ctx.fillRect(
-        this.#players[playerId].x,
-        this.#players[playerId].y,
-        this.#players[playerId].width,
-        this.#players[playerId].height,
+        this.playersState[playerId].position.x,
+        this.playersState[playerId].position.y,
+        c.GAME_PLR_WIDTH,
+        c.GAME_PLR_HEIGHT,
       );
     }
   };
