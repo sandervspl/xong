@@ -1,3 +1,5 @@
+const { GAME_FIELD_WIDTH, GAME_FIELD_HEIGHT } = require('@xong/constants');
+
 module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx}',
@@ -20,8 +22,13 @@ module.exports = {
         player: {
           1: '#a7455a',
           2: '#f9b357',
-          // 2: '#f9f871',
         },
+      },
+      width: {
+        field: GAME_FIELD_WIDTH,
+      },
+      height: {
+        field: GAME_FIELD_HEIGHT,
       },
     },
   },
