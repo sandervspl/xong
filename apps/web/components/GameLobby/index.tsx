@@ -20,9 +20,6 @@ import Cell from '../../components/GameLobby/Cell';
 import type { ClientGameState, ClientPlayersState, CombinedPlayerState } from './types';
 
 
-const PICK_TIMER = Number(process.env.NEXT_PUBLIC_GAME_PICK_TIMER);
-
-
 const GameLobby: React.VFC<Props> = (props) => {
   const { getItem } = useLocalStorage();
   const { query } = useRouter();
@@ -39,7 +36,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     }, {}),
   );
   const [cells, setCells] = React.useState<Map<i.CellId, FieldCellState>>(new Map());
-  const [preGameCountdown, setPreGameCountdown] = React.useState(3);
+  const [preGameCountdown, setPreGameCountdown] = React.useState(-1);
   const [pickCountdown, setPickCountdown] = React.useState(-1);
 
   // User checks
@@ -117,12 +114,12 @@ const GameLobby: React.VFC<Props> = (props) => {
   React.useEffect(() => {
     socket.on(c.GAME_PLAYSTATE_UPDATE, (data: i.PlaystateUpdateData) => {
       if (data === 'starting') {
-        doPregameCountdown();
+        setPreGameCountdown(c.GAME_PREGAME_TIMER);
         gameRef.current!.initBall();
       }
 
       if (data === 'playing') {
-        setPickCountdown(PICK_TIMER);
+        setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
         gameRef.current!.launchBall();
       }
 
@@ -165,7 +162,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       });
 
       if (data.winner == null) {
-        setPickCountdown(PICK_TIMER);
+        setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
       }
 
       gameRef.current!.gameState = {
@@ -186,15 +183,19 @@ const GameLobby: React.VFC<Props> = (props) => {
 
   React.useEffect(() => {
     if (preGameCountdown > 0) {
-      doPregameCountdown();
+      setTimeout(() => {
+        setPreGameCountdown((n) => n - 1);
+      }, 1000);
     }
   }, [preGameCountdown]);
 
-  function doPregameCountdown() {
-    setTimeout(() => {
-      setPreGameCountdown((n) => n - 1);
-    }, 1000);
-  }
+  React.useEffect(() => {
+    if (pickCountdown > 0) {
+      setTimeout(() => {
+        setPickCountdown((n) => n - 1);
+      }, 1000);
+    }
+  }, [pickCountdown]);
 
   React.useEffect(() => {
     if (gameState.phase !== 'xo' || gameState.playState !== 'playing') {
