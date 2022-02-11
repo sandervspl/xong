@@ -12,7 +12,7 @@ const Cell: React.VFC<Props> = (props) => {
   const { query } = useRouter();
   const { getItem } = useLocalStorage();
   const user = getItem('usernames')?.find((val) => val.active);
-  const cellData = props.gameState?.xoState.get(props.cellId);
+  const cellData = props.gameState?.xoState?.get?.(props.cellId);
   const isUserTurn = props.userIsPlayer && props.gameState?.turn === user?.id;
   const isPickPhase = props.gameState?.playState === 'playing'
     && props.gameState?.phase === 'xo'
