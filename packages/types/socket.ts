@@ -1,8 +1,6 @@
 import type * as gi from './game';
 
 
-export type SerializedXoState = [gi.CellId, gi.XoState][];
-
 export type PlayerConnectUpdateData = {
   userId: string;
   connected: boolean;
@@ -20,12 +18,12 @@ export type PlayerKeypressUpData = PlayerKeypressData & {
 export type BallTickData = gi.BallState;
 
 export type PlayerSelectCellData = {
-  xoState: SerializedXoState;
+  xoState: gi.XoFieldState;
   phase: gi.PhaseTypes;
 };
 
 export type PlayerHitCellData = {
-  xoState: SerializedXoState;
+  xoState: gi.XoFieldState;
   turn: gi.UserId;
   phase: gi.PhaseTypes;
   playState: gi.PlaystateTypes;

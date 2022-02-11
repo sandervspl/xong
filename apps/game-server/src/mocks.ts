@@ -16,16 +16,16 @@ export const socketMock = {
   },
 } as Socket;
 
-export const xoStateInit = new Map<string, i.XoState>();
+export const xoStateInit: i.XoFieldState = {};
 for (let x = 0; x < 3; x++) {
   for (let y = 0; y < 3; y++) {
     const cellId = '' + x + y;
-    xoStateInit.set(cellId, {
+    xoStateInit[cellId] = {
       cellId,
       mark: null,
       state: null,
       user: null,
-    });
+    };
   }
 }
 
@@ -79,7 +79,8 @@ mockPlayers.set('322304205897335372', {
   gameId: '322573768640692812',
   mark: 'x',
   socketId: '',
-  y: 0,
+  position: { x: 0, y: 0 },
+  speed: { x: 0, y: 0 },
 });
 mockPlayers.set('322526166267200076', {
   id: '322526166267200076',
@@ -88,5 +89,6 @@ mockPlayers.set('322526166267200076', {
   gameId: '322573768640692812',
   mark: 'o',
   socketId: '',
-  y: 0,
+  position: { x: 0, y: 0 },
+  speed: { x: 0, y: 0 },
 });

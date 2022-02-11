@@ -1,18 +1,18 @@
-import * as React from 'react';
+import type * as i from '@xong/types';
 import * as c from '@xong/constants';
+import * as React from 'react';
 import classNames from 'classnames';
 import { useRouter } from 'next/router';
 
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
-import type { ClientGameState } from './types';
 
 
 const Cell: React.VFC<Props> = (props) => {
   const { query } = useRouter();
   const { getItem } = useLocalStorage();
   const user = getItem('usernames')?.find((val) => val.active);
-  const cellData = props.gameState?.xoState?.get?.(props.cellId);
+  const cellData = props.gameState?.xoState[props.cellId];
   const isUserTurn = props.userIsPlayer && props.gameState?.turn === user?.id;
   const isPickPhase = props.gameState?.playState === 'playing'
     && props.gameState?.phase === 'xo'
@@ -49,6 +49,7 @@ const Cell: React.VFC<Props> = (props) => {
             : props.gameState?.turn === props.gameState?.players[2],
         },
         { 'pointer-events-none': !isPickPhase || cellData?.state === 'captured' },
+        { 'blur-sm': props.gameState?.winner != null },
       )}
       style={{
         top: props.y + 4 + 'px',
@@ -68,7 +69,7 @@ export type Props = {
   x: number;
   y: number;
   cellId: string;
-  gameState?: ClientGameState;
+  gameState?: i.GameState;
   userIsPlayer: boolean;
 };
 

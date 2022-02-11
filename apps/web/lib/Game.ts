@@ -8,7 +8,7 @@ import type { ClientPlayersState } from 'components/GameLobby/types';
 
 import { theme } from '../tailwind.config.js';
 import gameState from '../components/GameLobby/gameState';
-import type { FieldCellState } from './types';
+import type { XoFieldStateClient } from './types';
 
 
 class Game {
@@ -204,7 +204,7 @@ class Game {
       return;
     }
 
-    const mod = (gameState.phase === 'xo' || gameState.playState === 'finished')
+    const mod = (gameState.phase === 'xo' || gameState.winner != null)
       ? c.GAME_BALL_SPEED_MOD
       : 1;
 
@@ -343,9 +343,9 @@ class Game {
     return { L1x, L1y, L2x, L2y, L3x, L3y, L4x, L4y };
   }
 
-  getCellsState(cellsMap: Map<i.CellId, i.XoState>) {
+  getCellsState(fieldState: i.XoFieldState) {
     const { L3x, L1y } = this.getCellBorderPositions();
-    const cellsCopy = new Map(cellsMap) as Map<i.CellId, FieldCellState>;
+    const cellsCopy = { ...fieldState } as XoFieldStateClient;
 
     for (let x = 0; x < 3; x++) {
       for (let y = 0; y < 3; y++) {
@@ -353,17 +353,17 @@ class Game {
         const cellY = L1y + (c.GAME_XO_SQUARE_SIZE * y);
         const cellId = '' + x + y;
 
-        const cell = cellsMap.get(cellId);
+        const cell = cellsCopy[cellId];
         if (!cell) {
-          console.error('ERR "getCellsForState": no cells');
+          console.error('ERR "getCellsForState": no cells', fieldState, cellsCopy);
           return cellsCopy;
         }
 
-        cellsCopy.set(cellId, {
+        cellsCopy[cellId] = {
           ...cell,
           x: cellX,
           y: cellY,
-        });
+        };
       }
     }
 

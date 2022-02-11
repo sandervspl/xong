@@ -1,10 +1,12 @@
 import type * as i from '@xong/types';
 
 
-export type FieldCellState = i.XoState & {
+export type XoCellStateClient = i.XoCellState & {
   x: number;
   y: number;
 };
+
+export type XoFieldStateClient = Record<i.CellId, XoCellStateClient>;
 
 export type ServerPlayerState = {
   id: i.UserId;

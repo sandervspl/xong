@@ -28,10 +28,7 @@ export default async function gameActions(socket: Socket, io: Server) {
 
     // Send game state to user
     socket.emit(c.USER_JOINED_GAME, {
-      game: {
-        ...game.getState(),
-        xoState: [...gstate.xoState], // Serialize map to array
-      },
+      game: game.getState(),
       players,
     });
 
@@ -69,7 +66,7 @@ export default async function gameActions(socket: Socket, io: Server) {
 
       const allConnected = game.getPlayers().every((plr) => plr?.connected);
 
-      if (allConnected && gstate.playState !== 'playing') {
+      if (allConnected && gstate.playState !== 'playing' && gstate.winner == null) {
         const emitData: i.PlaystateUpdateData = 'starting';
 
         game.setState((draft) => {
@@ -203,18 +200,18 @@ export default async function gameActions(socket: Socket, io: Server) {
       return;
     }
 
-    if (gstate.xoState.get(data.cellId)?.state != null) {
+    if (gstate.xoState[data.cellId]?.state != null) {
       return;
     }
 
     const nextPhase: i.PhaseTypes = 'pong';
-    const nextXoState = new Map(gstate.xoState);
-    nextXoState.set(data.cellId, {
+    const nextXoState = { ...gstate.xoState };
+    nextXoState[data.cellId] = {
       cellId: data.cellId,
       mark: pstate.mark,
       state: 'selected',
       user: gstate.turn,
-    });
+    };
 
     game.setState((draft) => {
       draft.xoState = nextXoState;
@@ -222,7 +219,7 @@ export default async function gameActions(socket: Socket, io: Server) {
     });
 
     io.to(data.gameId).emit(c.PLAYER_SELECT_CELL, {
-      xoState: [...nextXoState],
+      xoState: nextXoState,
       phase: nextPhase,
     });
   });
@@ -242,8 +239,8 @@ export default async function gameActions(socket: Socket, io: Server) {
     }
 
     // Update XO field
-    const nextXoState = new Map(gstate.xoState);
-    const curState = gstate.xoState.get(data.cellId);
+    const nextXoState = { ...gstate.xoState };
+    const curState = gstate.xoState[data.cellId];
 
     if (!curState || !curState.user) {
       console.error(`ERR ${c.PLAYER_HIT_CELL}: no curstate found`, data, gstate);
@@ -256,12 +253,12 @@ export default async function gameActions(socket: Socket, io: Server) {
       return;
     }
 
-    nextXoState.set(data.cellId, {
+    nextXoState[data.cellId] = {
       cellId: data.cellId,
       mark: pstate.mark,
       state: 'captured',
       user: curState.user,
-    });
+    };
 
     // Update user turn
     const nextTurn = gstate.turn === gstate.players[1]
@@ -272,14 +269,14 @@ export default async function gameActions(socket: Socket, io: Server) {
 
     // Check win condition
     const possibilities = [
-      [nextXoState.get('00'), nextXoState.get('01'), nextXoState.get('02')], // col 1
-      [nextXoState.get('10'), nextXoState.get('11'), nextXoState.get('12')], // col 2
-      [nextXoState.get('20'), nextXoState.get('21'), nextXoState.get('22')], // col 3
-      [nextXoState.get('00'), nextXoState.get('10'), nextXoState.get('20')], // row 1
-      [nextXoState.get('01'), nextXoState.get('11'), nextXoState.get('12')], // row 2
-      [nextXoState.get('02'), nextXoState.get('12'), nextXoState.get('22')], // row 3
-      [nextXoState.get('00'), nextXoState.get('11'), nextXoState.get('22')], // top left bot right
-      [nextXoState.get('20'), nextXoState.get('11'), nextXoState.get('02')], // top right bot left
+      [nextXoState['00'], nextXoState['01'], nextXoState['02']], // col 1
+      [nextXoState['10'], nextXoState['11'], nextXoState['12']], // col 2
+      [nextXoState['20'], nextXoState['21'], nextXoState['22']], // col 3
+      [nextXoState['00'], nextXoState['10'], nextXoState['20']], // row 1
+      [nextXoState['01'], nextXoState['11'], nextXoState['12']], // row 2
+      [nextXoState['02'], nextXoState['12'], nextXoState['22']], // row 3
+      [nextXoState['00'], nextXoState['11'], nextXoState['22']], // top left bot right
+      [nextXoState['20'], nextXoState['11'], nextXoState['02']], // top right bot left
     ];
 
     let win = false;
@@ -294,7 +291,7 @@ export default async function gameActions(socket: Socket, io: Server) {
 
     let draw = false;
     if (!win) {
-      draw = [...nextXoState.values()].every((cell) => {
+      draw = Object.values(nextXoState).every((cell) => {
         return cell.state === 'captured';
       });
     }
@@ -320,7 +317,7 @@ export default async function gameActions(socket: Socket, io: Server) {
 
     // Emit to users
     io.to(data.gameId).emit(c.PLAYER_HIT_CELL, {
-      xoState: [...nextXoState],
+      xoState: nextXoState,
       turn: nextGameState.turn,
       phase: nextGameState.phase,
       playState: nextGameState.playState,

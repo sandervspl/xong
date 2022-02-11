@@ -9,7 +9,7 @@ import { useImmer } from 'use-immer';
 import axios from 'axios';
 import { useSnapshot } from 'valtio';
 
-import type { FieldCellState } from 'lib/types';
+import type { XoFieldStateClient } from 'lib/types';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
@@ -34,7 +34,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       return acc;
     }, {}),
   );
-  const [cells, setCells] = React.useState<Map<i.CellId, FieldCellState>>(new Map());
+  const [xoFieldState, setXoFieldState] = React.useState<XoFieldStateClient>({});
   const [preGameCountdown, setPreGameCountdown] = React.useState(-1);
   const [pickCountdown, setPickCountdown] = React.useState(-1);
 
@@ -92,33 +92,31 @@ const GameLobby: React.VFC<Props> = (props) => {
     );
 
     // Calculate cell positions with current XO state
-    setCells(gameRef.current.getCellsState(gameStateSnap.xoState));
+    setXoFieldState(gameRef.current.getCellsState(gameStateSnap.xoState));
   }, [loading, gameStateSnap, gameRef.current]);
 
   React.useEffect(() => {
     // Set local game state from response
     for (const key in props.game) {
-      if (key === 'xoState') {
-        gameState[key] = new Map(props.game[key]);
-      } else {
-        gameState[key] = props.game[key];
-      }
+      gameState[key] = props.game[key];
     }
 
     socket.on(c.GAME_PLAYSTATE_UPDATE, (data: i.PlaystateUpdateData) => {
-      if (gameStateSnap.playState !== 'playing') {
-        if (data === 'starting') {
-          setPreGameCountdown(c.GAME_PREGAME_TIMER);
-          gameRef.current!.initBall();
-        }
+      gameState.playState = data;
 
-        if (data === 'playing') {
-          setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
-          gameRef.current!.launchBall();
-        }
+      if (gameStateSnap.winner != null) {
+        return;
       }
 
-      gameState.playState = data;
+      if (data === 'starting') {
+        setPreGameCountdown(c.GAME_PREGAME_TIMER);
+        gameRef.current!.initBall();
+      }
+
+      if (data === 'playing') {
+        setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
+        gameRef.current!.launchBall();
+      }
     });
 
     socket.on(c.PLAYER_CONNECT_UPDATE, (data: i.PlayerConnectUpdateData) => {
@@ -129,15 +127,13 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     socket.on(c.PLAYER_SELECT_CELL, (data: i.PlayerSelectCellData) => {
       gameState.phase = data.phase;
-      gameState.xoState = new Map(data.xoState);
+      gameState.xoState = data.xoState;
     });
 
     socket.on(c.PLAYER_HIT_CELL, (data: i.PlayerHitCellData) => {
-      gameState.xoState = new Map(data.xoState);
-      gameState.turn = data.turn;
-      gameState.phase = data.phase;
-      gameState.winner = data.winner;
-      gameState.playState = data.playState;
+      for (const key in data) {
+        gameState[key] = data[key];
+      }
 
       if (data.winner == null) {
         setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
@@ -169,6 +165,10 @@ const GameLobby: React.VFC<Props> = (props) => {
   }, [pickCountdown]);
 
   React.useEffect(() => {
+    if (gameStateSnap.winner != null) {
+      return;
+    }
+
     if (gameStateSnap.phase !== 'xo' || gameStateSnap.playState !== 'playing') {
       return;
     }
@@ -177,7 +177,8 @@ const GameLobby: React.VFC<Props> = (props) => {
       return;
     }
 
-    const freeCells = [...gameStateSnap.xoState.values()].filter((cell) => {
+    const cells = Object.values(gameStateSnap.xoState) || [];
+    const freeCells = cells.filter((cell) => {
       return cell.state == null;
     });
     const rnd = Math.floor(Math.random() * freeCells.length);
@@ -199,24 +200,18 @@ const GameLobby: React.VFC<Props> = (props) => {
       <div className="grid place-items-center h-screen w-screen">
         <div className="w-field">
           <div className="flex justify-between text-4xl">
-            <span
-              className={classNames(
-                'flex justify-start items-center flex-1 text-player-1',
-              )}
-            >
+            <span className="flex justify-start items-center flex-1 text-player-1">
               {p1_STATIC.current?.username} ({p1_STATIC.current?.mark})
               {!playersState[p1_STATIC.current!.id]?.connected ? (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               ) : null}
             </span>
             <span className="flex justify-center flex-1 text-4xl">
-              {gameStateSnap.phase === 'xo' && pickCountdown > 0 ? pickCountdown : null}
+              {gameStateSnap.phase === 'xo' && pickCountdown > 0
+                ? pickCountdown
+                : null}
             </span>
-            <span
-              className={classNames(
-                'flex justify-end items-center flex-1 text-player-2',
-              )}
-            >
+            <span className="flex justify-end items-center flex-1 text-player-2">
               {!playersState[p2_STATIC.current!.id]?.connected ? (
                 <span className="text-primary-100 text-base pl-2">(connecting...)</span>
               ) : null}
@@ -230,7 +225,7 @@ const GameLobby: React.VFC<Props> = (props) => {
                 return <p className="text-6xl z-10">Loading game...</p>;
               }
 
-              if (gameStateSnap?.playState === 'finished') {
+              if (gameStateSnap?.winner != null) {
                 return (
                   <div className="absolute flex flex-col items-center z-10">
                     <div className="text-6xl mb-2">
@@ -281,8 +276,8 @@ const GameLobby: React.VFC<Props> = (props) => {
             {
               gameStateSnap?.playState !== 'waiting_for_players' &&
               gameStateSnap?.playState !== 'starting' &&
-              cells.size > 0
-                ? [...cells.values()].map((cellData, i) => (
+              Object.keys(xoFieldState).length > 0
+                ? Object.values(xoFieldState).map((cellData, i) => (
                   <Cell
                     key={i}
                     x={cellData.x}

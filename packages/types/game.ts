@@ -30,14 +30,16 @@ export type GameState = {
   playState: PlaystateTypes;
   phase: PhaseTypes;
   players: { 1: UserId; 2: UserId; };
-  xoState: Map<CellId, XoState>;
+  xoState: XoFieldState;
   ball: BallState;
   winner: null | UserId;
 };
 
-export type XoState = {
+export type XoCellState = {
   cellId: CellId;
   mark: null | Mark;
   state: null | 'selected' | 'captured';
   user: null | UserId;
 };
+
+export type XoFieldState = Record<CellId, XoCellState>;

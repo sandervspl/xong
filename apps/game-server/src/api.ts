@@ -19,10 +19,7 @@ export default async function createAPI(app: Express) {
     if (gstate) {
       const data: i.GetGameResult = {
         players,
-        game: {
-          ...gstate,
-          xoState: [...gstate.xoState], // Serialize map to array
-        },
+        game: gstate,
       };
 
       return res.status(200).json(data);
