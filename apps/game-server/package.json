@@ -15,8 +15,7 @@
     "cors": "2.8.5",
     "express": "4.17.2",
     "immer": "9.0.12",
-    "socket.io": "4.4.1",
-    "zustand": "3.6.9"
+    "socket.io": "4.4.1"
   },
   "devDependencies": {
     "@xong/types": "*",

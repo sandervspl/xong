@@ -7,28 +7,27 @@ import Link from 'next/link';
 import classNames from 'classnames';
 import { useImmer } from 'use-immer';
 import axios from 'axios';
+import { useSnapshot } from 'valtio';
 
 import type { FieldCellState } from 'lib/types';
 import { sdk } from 'lib/fauna';
 import Game from 'lib/Game';
 import socket from 'lib/websocket';
 import useLocalStorage from 'hooks/userLocalStorage';
-// import useInterval from 'hooks/useInterval';
 import isServer from 'utils/isServer';
 
-import Cell from '../../components/GameLobby/Cell';
-import type { ClientGameState, ClientPlayersState, CombinedPlayerState } from './types';
+
+import type { ClientPlayersState, CombinedPlayerState } from './types';
+import Cell from './Cell';
+import gameState from './gameState';
 
 
 const GameLobby: React.VFC<Props> = (props) => {
+  const gameStateSnap = useSnapshot(gameState);
   const { getItem } = useLocalStorage();
   const { query } = useRouter();
   const gameRef = React.useRef<Game | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [gameState, setGameState] = useImmer<ClientGameState>({
-    ...props.game,
-    xoState: new Map(props.game.xoState),
-  });
   const [playersState, setPlayersState] = useImmer<ClientPlayersState>(
     props.players.reduce<ClientPlayersState>((acc, plr) => {
       acc[plr.id] = plr;
@@ -47,13 +46,6 @@ const GameLobby: React.VFC<Props> = (props) => {
   const p1_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[1]));
   const p2_STATIC = React.useRef(props.players.find((plr) => plr.id === props.game.players[2]));
 
-  // Very dumb and bad
-  // useInterval(() => {
-  //   if (gameState.phase === 'xo' && pickCountdown > 0) {
-  //     setPickCountdown((n) => n - 1);
-  //   }
-  // }, 1000);
-
   React.useEffect(() => {
     if (isServer) {
       return;
@@ -71,16 +63,9 @@ const GameLobby: React.VFC<Props> = (props) => {
 
     socket.on(c.USER_LEFT_GAME, (data: i.UserLeftData) => {
       if (data.isPlayer) {
-        setGameState((draft) => {
-          draft.playState = 'finished';
-          draft.winner = data.winner;
-        });
+        gameState.playState = 'finished';
+        gameState.winner = data.winner;
       }
-
-      gameRef.current!.gameState = {
-        ...gameRef.current!.gameState,
-        playState: 'finished',
-      };
     });
 
     return function cleanup() {
@@ -91,7 +76,7 @@ const GameLobby: React.VFC<Props> = (props) => {
         gameId: (query as Queries).gameId,
       });
     };
-  }, [setGameState, setLoading]);
+  }, [setLoading]);
 
   React.useEffect(() => {
     if (loading || gameRef.current != null) {
@@ -101,36 +86,39 @@ const GameLobby: React.VFC<Props> = (props) => {
     // Create game instance
     gameRef.current = new Game(
       socket,
-      gameState,
       playersState,
       user,
       userIsPlayer,
     );
 
     // Calculate cell positions with current XO state
-    setCells(gameRef.current.getCellsState(gameState.xoState));
-  }, [loading, gameState, gameRef.current]);
+    setCells(gameRef.current.getCellsState(gameStateSnap.xoState));
+  }, [loading, gameStateSnap, gameRef.current]);
 
   React.useEffect(() => {
+    // Set local game state from response
+    for (const key in props.game) {
+      if (key === 'xoState') {
+        gameState[key] = new Map(props.game[key]);
+      } else {
+        gameState[key] = props.game[key];
+      }
+    }
+
     socket.on(c.GAME_PLAYSTATE_UPDATE, (data: i.PlaystateUpdateData) => {
-      if (data === 'starting') {
-        setPreGameCountdown(c.GAME_PREGAME_TIMER);
-        gameRef.current!.initBall();
+      if (gameStateSnap.playState !== 'playing') {
+        if (data === 'starting') {
+          setPreGameCountdown(c.GAME_PREGAME_TIMER);
+          gameRef.current!.initBall();
+        }
+
+        if (data === 'playing') {
+          setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
+          gameRef.current!.launchBall();
+        }
       }
 
-      if (data === 'playing') {
-        setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
-        gameRef.current!.launchBall();
-      }
-
-      setGameState((draft) => {
-        draft.playState = data;
-      });
-
-      gameRef.current!.gameState = {
-        ...gameRef.current!.gameState,
-        playState: data,
-      };
+      gameState.playState = data;
     });
 
     socket.on(c.PLAYER_CONNECT_UPDATE, (data: i.PlayerConnectUpdateData) => {
@@ -140,37 +128,20 @@ const GameLobby: React.VFC<Props> = (props) => {
     });
 
     socket.on(c.PLAYER_SELECT_CELL, (data: i.PlayerSelectCellData) => {
-      setGameState((draft) => {
-        draft.xoState = new Map(data.xoState);
-        draft.phase = data.phase;
-      });
-
-      gameRef.current!.gameState = {
-        ...gameRef.current!.gameState,
-        phase: data.phase,
-        xoState: new Map(data.xoState),
-      };
+      gameState.phase = data.phase;
+      gameState.xoState = new Map(data.xoState);
     });
 
     socket.on(c.PLAYER_HIT_CELL, (data: i.PlayerHitCellData) => {
-      setGameState((draft) => {
-        draft.xoState = new Map(data.xoState);
-        draft.turn = data.turn;
-        draft.phase = data.phase;
-        draft.winner = data.winner;
-        draft.playState = data.playState;
-      });
+      gameState.xoState = new Map(data.xoState);
+      gameState.turn = data.turn;
+      gameState.phase = data.phase;
+      gameState.winner = data.winner;
+      gameState.playState = data.playState;
 
       if (data.winner == null) {
         setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
       }
-
-      gameRef.current!.gameState = {
-        ...gameRef.current!.gameState,
-        playState: data.playState,
-        phase: data.phase,
-        winner: data.winner,
-      };
     });
 
     return function cleanup() {
@@ -198,7 +169,7 @@ const GameLobby: React.VFC<Props> = (props) => {
   }, [pickCountdown]);
 
   React.useEffect(() => {
-    if (gameState.phase !== 'xo' || gameState.playState !== 'playing') {
+    if (gameStateSnap.phase !== 'xo' || gameStateSnap.playState !== 'playing') {
       return;
     }
 
@@ -206,7 +177,7 @@ const GameLobby: React.VFC<Props> = (props) => {
       return;
     }
 
-    const freeCells = [...gameState.xoState.values()].filter((cell) => {
+    const freeCells = [...gameStateSnap.xoState.values()].filter((cell) => {
       return cell.state == null;
     });
     const rnd = Math.floor(Math.random() * freeCells.length);
@@ -221,7 +192,7 @@ const GameLobby: React.VFC<Props> = (props) => {
     }
 
     setPickCountdown(-1);
-  }, [gameState, pickCountdown]);
+  }, [gameStateSnap, pickCountdown]);
 
   return (
     <div className="text-primary-500">
@@ -239,7 +210,7 @@ const GameLobby: React.VFC<Props> = (props) => {
               ) : null}
             </span>
             <span className="flex justify-center flex-1 text-4xl">
-              {gameState.phase === 'xo' && pickCountdown > 0 ? pickCountdown : null}
+              {gameStateSnap.phase === 'xo' && pickCountdown > 0 ? pickCountdown : null}
             </span>
             <span
               className={classNames(
@@ -259,16 +230,16 @@ const GameLobby: React.VFC<Props> = (props) => {
                 return <p className="text-6xl z-10">Loading game...</p>;
               }
 
-              if (gameState?.playState === 'finished') {
+              if (gameStateSnap?.playState === 'finished') {
                 return (
                   <div className="absolute flex flex-col items-center z-10">
                     <div className="text-6xl mb-2">
                       {(() => {
-                        if (gameState.winner === 'draw') {
+                        if (gameStateSnap.winner === 'draw') {
                           return 'Draw!';
                         }
-                        else if (gameState.winner != null) {
-                          const username = p1_STATIC.current!.id === gameState.winner
+                        else if (gameStateSnap.winner != null) {
+                          const username = p1_STATIC.current!.id === gameStateSnap.winner
                             ? p1_STATIC.current?.username
                             : p2_STATIC.current?.username;
 
@@ -288,15 +259,15 @@ const GameLobby: React.VFC<Props> = (props) => {
                 );
               }
 
-              if (gameState?.playState === 'waiting_for_players') {
+              if (gameStateSnap?.playState === 'waiting_for_players') {
                 return <div className="absolute text-6xl z-10">Waiting for players...</div>;
               }
 
-              if (gameState?.playState === 'starting') {
+              if (gameStateSnap?.playState === 'starting') {
                 return <div className="absolute text-9xl z-10">{preGameCountdown}</div>;
               }
 
-              if (gameState?.phase === 'xo' && gameState?.turn === user?.id) {
+              if (gameStateSnap?.phase === 'xo' && gameStateSnap?.turn === user?.id) {
                 return (
                   <p className="absolute self-start text-5xl mt-2 z-10">
                     It{'\''}s your turn to pick!
@@ -308,8 +279,8 @@ const GameLobby: React.VFC<Props> = (props) => {
             })()}
 
             {
-              gameState?.playState !== 'waiting_for_players' &&
-              gameState?.playState !== 'starting' &&
+              gameStateSnap?.playState !== 'waiting_for_players' &&
+              gameStateSnap?.playState !== 'starting' &&
               cells.size > 0
                 ? [...cells.values()].map((cellData, i) => (
                   <Cell
@@ -317,7 +288,7 @@ const GameLobby: React.VFC<Props> = (props) => {
                     x={cellData.x}
                     y={cellData.y}
                     cellId={cellData.cellId}
-                    gameState={gameState}
+                    gameState={gameStateSnap}
                     userIsPlayer={userIsPlayer}
                   />
                 ))
@@ -331,7 +302,7 @@ const GameLobby: React.VFC<Props> = (props) => {
                 {
                   hidden: loading,
                   block: !loading,
-                  'blur-sm': gameState?.playState !== 'playing',
+                  'blur-sm': gameStateSnap?.playState !== 'playing',
                 },
               )}
               width={`${c.GAME_FIELD_WIDTH}px`}

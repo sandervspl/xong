@@ -4,9 +4,10 @@ import type { Socket } from 'socket.io-client';
 import { produce } from 'immer';
 
 import type { StoredUser } from 'hooks/userLocalStorage.js';
-import type { ClientGameState, ClientPlayersState } from 'components/GameLobby/types';
+import type { ClientPlayersState } from 'components/GameLobby/types';
 
 import { theme } from '../tailwind.config.js';
+import gameState from '../components/GameLobby/gameState';
 import type { FieldCellState } from './types';
 
 
@@ -20,7 +21,6 @@ class Game {
 
   constructor(
     socket: Socket,
-    public gameState: ClientGameState,
     public playersState: ClientPlayersState,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
@@ -70,50 +70,11 @@ class Game {
       });
     });
 
-    // socket.on(c.PLAYER_SELECT_CELL, (data: i.PlayerSelectCellData) => {
-    //   // if (!this.cells) {
-    //   //   console.error(`ERR "${c.PLAYER_SELECT_CELL}": no cells`);
-    //   //   return;
-    //   // }
+    socket.on(c.PLAYER_SELECT_CELL, (data: i.PlayerSelectCellData) => {
+    });
 
-    //   this.gameState.phase = data.phase;
-
-    //   for (const [cellId, nextCellState] of data.xoState) {
-    //     const curCellState = this.cells.get(cellId);
-
-    //     if (!curCellState) {
-    //       throw Error('no cell');
-    //     }
-
-    //     this.#updateCells(cellId, {
-    //       ...curCellState,
-    //       ...nextCellState,
-    //     });
-    //   }
-    // });
-
-    // socket.on(c.PLAYER_HIT_CELL, (data: PlayerHitCellData) => {
-    //   if (!this.cells) {
-    //     console.error(`ERR "${c.PLAYER_HIT_CELL}": no cells`);
-    //     return;
-    //   }
-
-    //   for (const [cellId, nextCellState] of data.xoState) {
-    //     const curCellState = this.cells.get(cellId);
-
-    //     if (!curCellState) {
-    //       console.error(`ERR "${c.PLAYER_HIT_CELL}": no cell`);
-    //       return;
-    //     }
-
-    //     this.#updateCells(cellId, {
-    //       ...curCellState,
-    //       ...nextCellState,
-    //     });
-    //   }
-    //   this.gameState.turn = data.turn;
-    //   this.gameState.phase = data.phase;
-    // });
+    socket.on(c.PLAYER_HIT_CELL, (data: i.PlayerHitCellData) => {
+    });
 
     socket.on(c.BALL_TICK, (data: i.BallTickData) => {
       this.#ball = data;
@@ -126,10 +87,6 @@ class Game {
   unload = () => {
     document.removeEventListener('keydown', this.#onKeyDown);
     document.removeEventListener('keyup', this.#onKeyUp);
-  };
-
-  start = () => {
-    // this.#tick();
   };
 
   initBall = () => {
@@ -195,7 +152,7 @@ class Game {
       const nextDirection = this.#updateDirection();
 
       this.#socket.emit(c.PLAYER_KEY_DOWN, {
-        gameId: this.gameState.id,
+        gameId: gameState.id,
         userId: this.#user.id,
         direction: nextDirection,
       });
@@ -211,7 +168,7 @@ class Game {
       const nextDirection = this.#updateDirection();
 
       this.#socket.emit(c.PLAYER_KEY_UP, {
-        gameId: this.gameState.id,
+        gameId: gameState.id,
         userId: this.#user.id,
         y: this.playersState[this.#user.id].position.y,
         direction: nextDirection,
@@ -220,12 +177,12 @@ class Game {
   };
 
   #updatePositions = () => {
-    if (!(['finished', 'playing'] as i.PlaystateTypes[]).includes(this.gameState.playState)) {
+    if (!(['finished', 'playing'] as i.PlaystateTypes[]).includes(gameState.playState)) {
       return;
     }
 
     // PLAYERS
-    if (this.gameState.playState === 'playing') {
+    if (gameState.playState === 'playing') {
       for (const playerId of Object.keys(this.playersState)) {
         const plr = this.playersState[playerId];
         let next = plr.position.y;
@@ -247,7 +204,7 @@ class Game {
       return;
     }
 
-    const mod = (this.gameState.phase === 'xo' || this.gameState.playState === 'finished')
+    const mod = (gameState.phase === 'xo' || gameState.playState === 'finished')
       ? c.GAME_BALL_SPEED_MOD
       : 1;
 
@@ -297,8 +254,8 @@ class Game {
     //   this.#ball.position.y = c.GAME_FIELD_HEIGHT / 2;
     // }
 
-    const paddle1 = this.playersState[this.gameState.players[1]];
-    const paddle2 = this.playersState[this.gameState.players[2]];
+    const paddle1 = this.playersState[gameState.players[1]];
+    const paddle2 = this.playersState[gameState.players[2]];
 
     if (bottomX < c.GAME_PLR_HEIGHT * 2) {
       // Check for hit player 1
