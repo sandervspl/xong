@@ -1,7 +1,9 @@
 export const USER_JOINED_GAME = 'user-joined-game';
 export const USER_LEFT_GAME = 'user-left-game';
 export const PLAYER_CONNECT_UPDATE = 'player-connect-update';
-export const GAME_PLAYSTATE_UPDATE = 'game-playstate-update';
+export const GAME_SERVER_ERROR = 'game-server-error';
+export const GAME_PLAYSTATE_STARTING = 'game-playstate-starting';
+export const GAME_PLAYSTATE_PLAYING = 'game-playstate-playing';
 export const PLAYER_KEY_DOWN = 'player-key-down';
 export const PLAYER_KEY_UP = 'player-key-up';
 export const PLAYER_SELECT_CELL = 'player-select-cell';

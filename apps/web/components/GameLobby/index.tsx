@@ -101,22 +101,24 @@ const GameLobby: React.VFC<Props> = (props) => {
       gameState[key] = props.game[key];
     }
 
-    socket.on(c.GAME_PLAYSTATE_UPDATE, (data: i.PlaystateUpdateData) => {
-      gameState.playState = data;
+    socket.on(c.GAME_PLAYSTATE_STARTING, (data: i.PlaystateStartingData) => {
+      gameState.playState = data.playState;
 
-      if (gameStateSnap.winner != null) {
+      if (gameStateSnap.winner != null || gameStateSnap.playState !== 'waiting_for_players') {
         return;
       }
 
-      if (data === 'starting') {
-        setPreGameCountdown(c.GAME_PREGAME_TIMER);
-        gameRef.current!.initBall();
+      setPreGameCountdown(c.GAME_PREGAME_TIMER);
+    });
+
+    socket.on(c.GAME_PLAYSTATE_PLAYING, (data: i.PlaystatePlayingData) => {
+      gameState.playState = data.playState;
+
+      if (gameStateSnap.winner != null || gameStateSnap.playState !== 'starting') {
+        return;
       }
 
-      if (data === 'playing') {
-        setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
-        gameRef.current!.launchBall();
-      }
+      setPickCountdown(c.GAME_XO_CELL_PICK_TIMER);
     });
 
     socket.on(c.PLAYER_CONNECT_UPDATE, (data: i.PlayerConnectUpdateData) => {
@@ -141,7 +143,8 @@ const GameLobby: React.VFC<Props> = (props) => {
     });
 
     return function cleanup() {
-      socket.off(c.GAME_PLAYSTATE_UPDATE);
+      socket.off(c.GAME_PLAYSTATE_STARTING);
+      socket.off(c.GAME_PLAYSTATE_PLAYING);
       socket.off(c.PLAYER_CONNECT_UPDATE);
       socket.off(c.PLAYER_SELECT_CELL);
       socket.off(c.PLAYER_HIT_CELL);

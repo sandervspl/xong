@@ -18,10 +18,11 @@ class Game {
   #keysPressed: Set<string> = new Set<string>();
   #socket: Socket;
   #ball: i.BallState;
+  #playersState: ClientPlayersState;
 
   constructor(
     socket: Socket,
-    public playersState: ClientPlayersState,
+    playersState: ClientPlayersState,
     user: StoredUser | undefined,
     userIsPlayer: boolean,
   ) {
@@ -29,13 +30,9 @@ class Game {
     this.#ctx = this.#canvas.getContext('2d')!;
     this.#socket = socket;
     this.#user = user;
+    this.#playersState = playersState;
 
-    this.#ball = gameState.playState !== 'playing'
-      ? { ...gameState.ball }
-      : {
-        position: { x: -100, y: -100 },
-        speed: { x: 0, y: 0 },
-      };
+    this.#ball = { ...gameState.ball };
 
     // Only give players of this game keyboard controls
     if (userIsPlayer) {
@@ -43,9 +40,20 @@ class Game {
       document.addEventListener('keyup', this.#onKeyUp);
     }
 
+    socket.on(c.GAME_PLAYSTATE_STARTING, (data: i.PlaystateStartingData) => {
+      gameState.playState = data.playState;
+      this.#ball = data.ball;
+    });
+
+    socket.on(c.GAME_PLAYSTATE_PLAYING, (data: i.PlaystateStartingData) => {
+      gameState.playState = data.playState;
+      this.#ball = data.ball;
+    });
+
     socket.on(c.PLAYER_KEY_DOWN, (data: i.PlayerKeypressData) => {
       if (data.userId !== this.#user?.id) {
-        this.playersState = produce(this.playersState, (draft) => {
+        /** Important to update it with 'produce' to prevent read-only errors */
+        this.#playersState = produce(this.#playersState, (draft) => {
           draft[data.userId].direction = data.direction;
           draft[data.userId].speed.y = data.direction === 'down'
             ? c.GAME_PADDLE_SPEED
@@ -55,7 +63,7 @@ class Game {
     });
 
     socket.on(c.PLAYER_KEY_UP, (data: i.PlayerKeypressUpData) => {
-      this.playersState = produce(this.playersState, (draft) => {
+      this.#playersState = produce(this.#playersState, (draft) => {
         draft[data.userId].position.y = data.y;
 
         if (data.userId !== this.#user?.id) {
@@ -87,28 +95,13 @@ class Game {
   unload = () => {
     document.removeEventListener('keydown', this.#onKeyDown);
     document.removeEventListener('keyup', this.#onKeyUp);
-  };
 
-  initBall = () => {
-    if (this.#ball.position.x > 0) {
-      return;
-    }
-
-    this.#ball.position = {
-      x: c.GAME_FIELD_WIDTH / 2 - c.GAME_BALL_SIZE / 2,
-      y: c.GAME_FIELD_HEIGHT / 2 - c.GAME_BALL_SIZE / 2,
-    };
-  };
-
-  launchBall = () => {
-    if (this.#ball.speed.x > 0) {
-      return;
-    }
-
-    this.#ball.speed = {
-      x: c.GAME_BALL_SPEED,
-      y: 0,
-    };
+    this.#socket.off(c.GAME_PLAYSTATE_STARTING);
+    this.#socket.off(c.PLAYER_KEY_DOWN);
+    this.#socket.off(c.PLAYER_KEY_UP);
+    this.#socket.off(c.PLAYER_SELECT_CELL);
+    this.#socket.off(c.PLAYER_HIT_CELL);
+    this.#socket.off(c.BALL_TICK);
   };
 
   #updateDirection = () => {
@@ -131,7 +124,7 @@ class Game {
     }
 
     const id = this.#user.id;
-    this.playersState = produce(this.playersState, (draft) => {
+    this.#playersState = produce(this.#playersState, (draft) => {
       draft[id].direction = direction;
       draft[id].speed.y = velocity;
     });
@@ -170,7 +163,7 @@ class Game {
       this.#socket.emit(c.PLAYER_KEY_UP, {
         gameId: gameState.id,
         userId: this.#user.id,
-        y: this.playersState[this.#user.id].position.y,
+        y: this.#playersState[this.#user.id].position.y,
         direction: nextDirection,
       });
     }
@@ -183,8 +176,8 @@ class Game {
 
     // PLAYERS
     if (gameState.playState === 'playing') {
-      for (const playerId of Object.keys(this.playersState)) {
-        const plr = this.playersState[playerId];
+      for (const playerId of Object.keys(this.#playersState)) {
+        const plr = this.#playersState[playerId];
         let next = plr.position.y;
 
         if (plr.direction != null) {
@@ -192,7 +185,7 @@ class Game {
         }
 
         if (next >= 0 && next <= c.GAME_FIELD_HEIGHT - c.GAME_PLR_HEIGHT) {
-          this.playersState = produce(this.playersState, (draft) => {
+          this.#playersState = produce(this.#playersState, (draft) => {
             draft[playerId].position.y = next;
           });
         }
@@ -254,8 +247,8 @@ class Game {
     //   this.#ball.position.y = c.GAME_FIELD_HEIGHT / 2;
     // }
 
-    const paddle1 = this.playersState[gameState.players[1]];
-    const paddle2 = this.playersState[gameState.players[2]];
+    const paddle1 = this.#playersState[gameState.players[1]];
+    const paddle2 = this.#playersState[gameState.players[2]];
 
     if (bottomX < c.GAME_PLR_HEIGHT * 2) {
       // Check for hit player 1
@@ -394,11 +387,11 @@ class Game {
 
   #drawPlayers = () => {
     let i = 1;
-    for (const playerId of Object.keys(this.playersState)) {
+    for (const playerId of Object.keys(this.#playersState)) {
       this.#ctx.fillStyle = theme.extend.colors.player[i++];
       this.#ctx.fillRect(
-        this.playersState[playerId].position.x,
-        this.playersState[playerId].position.y,
+        this.#playersState[playerId].position.x,
+        this.#playersState[playerId].position.y,
         c.GAME_PLR_WIDTH,
         c.GAME_PLR_HEIGHT,
       );

@@ -32,6 +32,16 @@ export type PlayerHitCellData = {
 
 export type PlaystateUpdateData = gi.PlaystateTypes;
 
+export type PlaystateStartingData = {
+  playState: 'starting';
+  ball: gi.BallState;
+}
+
+export type PlaystatePlayingData = {
+  playState: 'playing';
+  ball: gi.BallState;
+};
+
 export type UserJoinedData = void;
 
 export type UserLeftData = {

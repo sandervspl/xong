@@ -67,23 +67,56 @@ export default async function gameActions(socket: Socket, io: Server) {
       const allConnected = game.getPlayers().every((plr) => plr?.connected);
 
       if (allConnected && gstate.playState !== 'playing' && gstate.winner == null) {
-        const emitData: i.PlaystateUpdateData = 'starting';
+        const emitData: i.PlaystateStartingData = {
+          playState: 'starting',
+          ball: {
+            position: {
+              x: c.GAME_FIELD_WIDTH / 2 - c.GAME_BALL_SIZE / 2,
+              y: c.GAME_FIELD_HEIGHT / 2 - c.GAME_BALL_SIZE / 2,
+            },
+            speed: { x: 0, y: 0 },
+          },
+        };
 
         game.setState((draft) => {
-          draft.playState = emitData;
+          draft.playState = emitData.playState;
+          draft.ball = emitData.ball;
         });
 
-        io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, emitData);
+        io.to(data.gameId).emit(c.GAME_PLAYSTATE_STARTING, emitData);
 
         // Start game in ~3 seconds
         setTimeout(() => {
-          const emitData: i.PlaystateUpdateData = 'playing';
+          const gstate = game.getState();
+
+          if (!gstate) {
+            const emitData = {
+              playState: 'finished',
+              winner: 'draw',
+            };
+
+            /** @TODO implement frontend */
+            io.to(data.gameId).emit(c.GAME_SERVER_ERROR, emitData);
+            return;
+          }
+
+          const emitData: i.PlaystatePlayingData = {
+            playState: 'playing',
+            ball: {
+              ...gstate.ball,
+              speed: {
+                x: c.GAME_BALL_SPEED,
+                y: 0,
+              },
+            },
+          };
 
           game.setState((draft) => {
-            draft.playState = emitData;
+            draft.playState = emitData.playState;
+            draft.ball = emitData.ball;
           });
 
-          io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, emitData);
+          io.to(data.gameId).emit(c.GAME_PLAYSTATE_PLAYING, emitData);
         }, 3050);
       }
     }
@@ -117,14 +150,6 @@ export default async function gameActions(socket: Socket, io: Server) {
       reason,
       winner: winner?.id,
     });
-  });
-
-  socket.on(c.GAME_PLAYSTATE_UPDATE, (data: GamePlayStateData) => {
-    getGame(data.gameId).setState((draft) => {
-      draft.playState = data.playState;
-    });
-
-    io.to(data.gameId).emit(c.GAME_PLAYSTATE_UPDATE, data.playState);
   });
 
   socket.on(c.PLAYER_KEY_DOWN, (data: KeypressData) => {
